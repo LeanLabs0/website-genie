@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Website Genie — Lean Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700&family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--font-heading:'Plus Jakarta Sans',sans-serif;--font-body:'Roboto',sans-serif;--surface-page:#0D0D0D}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--surface-page,#0D0D0D);color:#fff;font-family:var(--font-body,'Roboto',sans-serif);-webkit-font-smoothing:antialiased}
+a{color:#fff}a:hover{color:#93C5FD}
+h3{margin:0}
+.hd{font-family:var(--font-heading,'Plus Jakarta Sans',sans-serif);font-weight:600}
+.sec2{color:#949494}
+.eyebrow{font:600 12px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:#949494}
+.card{background:#141414;border-radius:16px;box-shadow:inset 0 0 0 1px #2B2B2B}
+.btnp{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 16px/1.5 var(--font-body);color:#0D0D0D;background:#fff;border:0;border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none;white-space:nowrap}
+.btnp:hover{background:#E5E5E5;color:#0D0D0D}
+.btns{display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 16px/1.5 var(--font-body);color:#fff;background:transparent;box-shadow:inset 0 0 0 1px #2B2B2B;border:0;border-radius:8px;padding:12px 24px;cursor:pointer;text-decoration:none}
+.btns:hover{background:#1C1C1C;color:#fff}
+.btnsm{padding:8px 20px;font-size:14px}
+.w100{width:100%}
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:16px 64px;background:rgba(13,13,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid #2B2B2B}
+.wordmark{display:flex;align-items:center;gap:12px}
+.llmark{width:34px;height:34px;color:#fff}
+.llmark svg{width:100%;height:100%;display:block}
+.gname2{font:600 17px/1.2 var(--font-heading);color:#fff}
+.gsub{font:400 12px/1.3 var(--font-body);color:#949494;margin-top:2px}
+.funnel{display:flex;align-items:center;gap:4px}
+.fstage{font:500 14px/1 var(--font-body);color:#949494;background:transparent;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+.fstage:hover{color:#fff}
+.fstage.on{color:#fff;background:#1C1C1C;box-shadow:inset 0 0 0 1px #2B2B2B}
+.fsep{color:#2B2B2B;font:500 13px/1 var(--font-body)}
+.railwrap{position:sticky;top:69px;z-index:40;background:rgba(13,13,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid #2B2B2B;padding:12px 64px}
+.rail{display:flex;gap:8px;max-width:1280px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.rail::-webkit-scrollbar{display:none}
+.step{flex:1;min-width:96px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:transparent;border:0;border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left}
+.step:hover{background:#141414}
+.step .snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--font-heading);box-shadow:inset 0 0 0 1.5px #2B2B2B;color:#949494}
+.step .sname{font:600 14px/1.15 var(--font-heading);color:#fff}
+.step .sst{font:600 9px/1 var(--font-heading);letter-spacing:.12em;text-transform:uppercase;color:#757575}
+.step.done .snum{background:#212121;box-shadow:none;color:#00D492}
+.step.active .snum{background:#fff;box-shadow:none;color:#0D0D0D}
+.step.next .snum{box-shadow:inset 0 0 0 1.5px #757575;color:#fff}
+.step.locked{opacity:.45}
+.step.sel{background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B}
+.screen{max-width:1280px;margin:0 auto;padding:48px 64px 112px}
+.report{display:grid;grid-template-columns:280px 1fr;gap:32px;align-items:start}
+.side{position:sticky;top:160px;display:flex;flex-direction:column;gap:24px;padding:32px}
+.dialwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+.dial{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0D0D0D}
+.dial .in{width:116px;height:116px;border-radius:50%;background:#141414;display:flex;align-items:center;justify-content:center;font:600 42px/1 var(--font-heading)}
+.dl{font:600 10px/1 var(--font-heading);letter-spacing:.15em;text-transform:uppercase;color:#949494}
+.cbar{display:flex;flex-direction:column;gap:6px}
+.cbar .top{display:flex;align-items:center;justify-content:space-between}
+.cbar .cn{font:400 14px/1.3 var(--font-body);color:#949494}
+.cbar .cg{font:600 13px/1 var(--font-heading);color:#fff}
+.track{height:6px;border-radius:5px;background:#212121}
+.fill{height:100%;border-radius:5px}
+.g-good{background:#00D492}.g-mid{background:#FFA600}.g-bad{background:#E5484D}
+.t-good{color:#00D492}.t-mid{color:#FFA600}.t-bad{color:#E5484D}
+.sidenote{font:400 12px/1.5 var(--font-body);color:#757575;text-align:center}
+.movepill{display:inline-flex;align-items:center;gap:8px;font:600 11px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:#B0B0B0;background:#212121;border-radius:4px;padding:8px 12px}
+.movetitle{font:600 40px/1.2 var(--font-heading);letter-spacing:-.01em;margin-top:16px;color:#fff}
+.movesub{font:600 13px/1 var(--font-heading);letter-spacing:.12em;text-transform:uppercase;color:#949494;margin-top:10px}
+.movewhy{margin-top:14px;font:400 16px/1.5 var(--font-body);color:#949494;max-width:64ch;border-left:2px solid #2B2B2B;padding-left:16px}
+.rhero{display:flex;gap:24px;margin-top:28px;align-items:stretch;flex-wrap:wrap}
+.rhtext{flex:1;min-width:34ch;display:flex;flex-direction:column;justify-content:center}
+.hverdict{font:600 24px/1.35 var(--font-heading);color:#fff}
+.hsum{margin-top:10px;font:400 16px/1.5 var(--font-body);color:#949494;max-width:60ch}
+.metaline{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+.mtag{font:500 12px/1 var(--font-body);color:#B0B0B0;background:#1C1C1C;border-radius:4px;padding:7px 10px}
+.shot{position:relative;flex:none;width:340px;min-height:200px;border-radius:16px;overflow:hidden}
+.pin{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;color:#0D0D0D;font:700 12px/1 var(--font-heading);display:flex;align-items:center;justify-content:center;z-index:5;pointer-events:none}
+.sectlab{display:flex;align-items:center;gap:12px;margin:40px 2px 16px}
+.sectlab .n{font:600 11px/1 var(--font-heading);letter-spacing:.15em;color:#757575;text-transform:uppercase}
+.sectlab h3{font:600 16px/1 var(--font-heading);color:#fff}
+.sectlab .ln{flex:1;height:1px;background:#2B2B2B}
+.cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.rcard{display:flex;flex-direction:column;gap:10px;padding:24px}
+.rcard .rh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rhl{display:flex;align-items:center;gap:10px}
+.rnum{width:24px;height:24px;border-radius:50%;background:#212121;color:#fff;font:600 12px/1 var(--font-heading);display:flex;align-items:center;justify-content:center;flex:none}
+.rcard .rt{font:600 16px/1.35 var(--font-heading);color:#fff}
+.rgrade{flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:#212121;font:600 14px/1 var(--font-heading)}
+.rcard .rv{font:400 14px/1.5 var(--font-body);color:#949494}
+.rcard .rx{font:500 13px/1.5 var(--font-body);color:#B0B0B0;border-top:1px solid #2B2B2B;padding-top:10px}
+.passbadge{flex:none;display:inline-flex;align-items:center;gap:6px;font:600 10px/1 var(--font-heading);letter-spacing:.1em;color:#00D492;background:rgba(0,212,146,.1);border-radius:100px;padding:8px 12px}
+.swp{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.swpc{padding:24px}
+.swpc .sl{font:600 10px/1 var(--font-heading);letter-spacing:.13em;text-transform:uppercase;color:#757575}
+.swpc .sv{margin-top:10px;font:600 16px/1.35 var(--font-heading);color:#fff}
+.swpc.hot{box-shadow:inset 0 0 0 1px #FDE68A}
+.overall{display:flex;align-items:center;gap:16px;margin:28px 0 16px;padding:24px}
+.overall .og{width:56px;height:56px;border-radius:12px;background:#212121;display:flex;align-items:center;justify-content:center;font:600 22px/1 var(--font-heading);flex:none}
+.overall .ot{font:600 17px/1.35 var(--font-heading);color:#fff}
+.overall .os{font:400 14px/1.5 var(--font-body);color:#949494;margin-top:3px}
+.tscroll{overflow-x:auto;border-radius:16px;background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B}
+.tbl{width:100%;border-collapse:collapse;font:400 14px/1.5 var(--font-body);min-width:560px;color:#949494}
+.tbl th{text-align:left;font:600 10px/1 var(--font-heading);letter-spacing:.12em;color:#757575;text-transform:uppercase;padding:14px 20px;border-bottom:1px solid #2B2B2B;white-space:nowrap}
+.tbl td{padding:14px 20px;border-bottom:1px solid #2B2B2B;vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .claim{font-weight:500;color:#fff}
+.teaser{display:flex;align-items:center;gap:24px;margin-top:40px;padding:32px}
+.tup{font:600 10px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:#757575}
+.ttl{font:600 20px/1.3 var(--font-heading);margin-top:8px;color:#fff}
+.tone{font:400 14px/1.5 var(--font-body);color:#949494;margin-top:6px;max-width:52ch}
+.f1{flex:1}
+.fx{display:flex}.ac{align-items:center}.jb{justify-content:space-between}.col{flex-direction:column}
+.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}
+.gate{padding:32px;margin-top:28px;box-shadow:inset 0 0 0 1px #FDE68A;border-radius:16px;background:#141414}
+.field{display:flex;align-items:center;width:100%;height:48px;padding:0 16px;background:#0D0D0D;box-shadow:inset 0 0 0 1px #2B2B2B;border:0;border-radius:8px;font:400 15px/1 var(--font-body);color:#fff}
+input.field::placeholder{color:#757575}
+input.field:focus{outline:none;box-shadow:inset 0 0 0 1px #757575}
+.flab{font:600 10px/1 var(--font-heading);letter-spacing:.12em;text-transform:uppercase;color:#949494;display:block;margin-bottom:8px}
+.entry{max-width:680px;margin:24px auto;display:flex;flex-direction:column;gap:32px}
+.entrytop{text-align:center}
+.eprompt{font:600 48px/1.2 var(--font-heading);letter-spacing:-.01em;color:#fff;text-wrap:balance}
+.esub{margin-top:16px;font:400 18px/1.5 var(--font-body);color:#949494;max-width:52ch;margin-left:auto;margin-right:auto}
+.moverow{display:flex;align-items:center;gap:16px;padding:20px 24px}
+.moverow.lk{opacity:.5}
+.moverow .mn{width:32px;height:32px;border-radius:8px;background:#212121;display:flex;align-items:center;justify-content:center;font:600 14px/1 var(--font-heading);color:#B0B0B0;flex:none}
+.moverow.on .mn{background:#fff;color:#0D0D0D}
+.mrt{font:600 16px/1.3 var(--font-heading);color:#fff}
+.mrd{font:400 14px/1.5 var(--font-body);color:#949494;margin-top:4px}
+.placeholder{max-width:620px;margin:48px auto;text-align:center;padding:48px 40px}
+.hr{height:1px;background:#2B2B2B;margin:20px 0}
+.fixes{display:flex;flex-direction:column;gap:12px}
+.fix{display:flex;gap:16px;padding:20px 24px}
+.fixn{width:30px;height:30px;border-radius:8px;background:#fff;color:#0D0D0D;font:600 14px/1 var(--font-heading);display:flex;align-items:center;justify-content:center;flex:none}
+.ft{font:600 15px/1.4 var(--font-heading);color:#fff}
+.fd{margin-top:4px;font:400 14px/1.5 var(--font-body);color:#949494}
+.fnote{font:500 12px/1.4 var(--font-body);color:#757575}
+.bookrow{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;margin-top:20px}
+.offers{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.offer{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:8px;background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B;font:500 14px/1.2 var(--font-body);color:#fff}
+.offer .ck{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font:600 11px/1 var(--font-heading);color:#757575;box-shadow:inset 0 0 0 1.5px #2B2B2B;flex:none}
+.offer.have .ck{background:rgba(0,212,146,.15);box-shadow:none;color:#00D492}
+.offer.missing{opacity:.55}
+.slotwrap{position:relative;width:100%;height:100%;min-height:200px}
+.toolby{font:600 10px/1 var(--font-heading);letter-spacing:.13em;text-transform:uppercase;color:#757575;margin-top:5px}
+image-slot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1C1C1C;box-shadow:inset 0 0 0 1px #2B2B2B}
+image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:center;padding:16px}
+@media (max-width:1200px){.report{grid-template-columns:1fr}.side{position:static}}
+@media (max-width:900px){.cols2,.cols3,.swp{grid-template-columns:1fr}.shot{width:100%}.bookrow{grid-template-columns:1fr}.screen{padding:32px 20px 64px}.topbar,.railwrap{padding-left:20px;padding-right:20px}.eprompt{font-size:36px}}
+@media print{@page{size:1280px 1700px;margin:0}.topbar,.railwrap,.teaser{display:none}.screen{break-after:page}[hidden]{display:block!important}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wordmark">
+    <span class="llmark"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 29.587 30" fill="none"><path d="M 14.793 0 C 22.963 0 29.587 6.716 29.587 15 C 29.587 23.284 22.963 30 14.793 30 C 6.623 30 0 23.284 0 15 C 0 6.716 6.623 0 14.793 0 Z M 15.659 9.375 C 15.653 9.68 15.646 9.986 15.64 10.291 C 15.64 11.477 15.817 13.047 15.179 13.602 C 14.516 14.178 12.237 14.334 11.702 13.524 C 11.33 12.963 11.481 11.579 11.49 10.68 L 7.859 10.68 L 7.859 14.362 C 8.922 14.351 10.553 14.159 11.029 14.771 C 11.44 15.299 11.526 17.912 10.933 18.278 C 10.69 18.427 8.807 18.342 8.339 18.336 L 8.32 21.278 C 9.287 21.284 10.254 21.291 11.221 21.297 C 11.215 20.613 11.076 18.837 11.356 18.453 C 11.763 17.891 14.284 18.093 15.313 18.102 C 15.304 16.649 15.032 14.351 15.87 13.719 C 16.438 13.291 19.311 13.258 19.674 13.856 C 19.849 14.144 19.756 16.064 19.751 16.603 L 22.652 16.603 L 22.652 13.661 C 21.957 13.667 20.377 13.799 19.982 13.505 C 19.439 13.101 19.647 10.422 19.655 9.395 C 18.323 9.388 16.991 9.381 15.659 9.375 Z" fill="currentColor" fill-rule="evenodd"></path></svg></span>
+    <div>
+      <div class="gname2">Website Genie</div>
+      <div class="gsub">Website grade report</div>
+    </div>
+  </div>
+  <div class="funnel">
+    <button class="fstage" data-go="entry">Opt In</button><span class="fsep">›</span><span class="fstage on">Genie</span><span class="fsep">›</span><span class="fstage">Accelerator</span><span class="fsep">›</span><span class="fstage">Blueprint</span>
+  </div>
+  <button class="btnp btnsm">Book a Website Makeover Call</button>
+</header>
+
+<div class="railwrap">
+  <nav class="rail">
+    <button class="step" data-step="entry" data-go="entry"><span class="snum">0</span><span class="sname">Enter URL</span><span class="sst"></span></button>
+    <button class="step" data-step="copy" data-go="copy"><span class="snum">1</span><span class="sname">Copy</span><span class="sst"></span></button>
+    <button class="step" data-step="credibility" data-go="credibility"><span class="snum">2</span><span class="sname">Credibility</span><span class="sst"></span></button>
+    <button class="step" data-step="conversion" data-go="conversion"><span class="snum">3</span><span class="sname">Conversion</span><span class="sst"></span></button>
+    <button class="step" data-step="code" data-go="code"><span class="snum">4</span><span class="sname">Code</span><span class="sst"></span></button>
+    <button class="step" data-step="cost" data-go="cost"><span class="snum">5</span><span class="sname">Cost &amp; ROI</span><span class="sst"></span></button>
+    <button class="step" data-step="conversation" data-go="conversation"><span class="snum">6</span><span class="sname">Conversation</span><span class="sst"></span></button>
+  </nav>
+</div>
+
+<!-- Step 0 · Entry -->
+<section data-screen="entry">
+<div class="screen">
+  <div class="entry">
+    <div class="entrytop">
+      <span class="movepill">Step 0 · Opt In</span>
+      <div class="eprompt" style="margin-top:20px">See what’s holding your website back in AI search, and exactly how to fix it fast.</div>
+      <div class="esub">Enter your most valuable product or solution page URL and get a full breakdown with fixes in 90 seconds or less.</div>
+    </div>
+    <div>
+      <label class="flab" for="entry-url">Your solution page URL</label>
+      <input class="field" id="entry-url" type="url" placeholder="https://yoursite.com/your-solution-page">
+    </div>
+    <button class="btnp w100" style="padding:16px 24px;font-size:17px" data-go="copy">Reveal Your Genius Moves →</button>
+    <div>
+      <div class="sectlab"><span class="n">What we grade</span><h3>The Genius Moves</h3><span class="ln"></span></div>
+      <div class="fx col gap12">
+        <div class="card moverow on"><div class="mn">1</div><div><div class="mrt">Copy</div><div class="mrd">How well does the website copy serve your buyers and LLMs.</div></div></div>
+        <div class="card moverow lk"><div class="mn">2</div><div><div class="mrt">Credibility</div><div class="mrd">How trustworthy and authoritative your brand is to buyers and AI.</div></div></div>
+        <div class="card moverow lk"><div class="mn">3</div><div><div class="mrt">Conversion</div><div class="mrd">Do your pages lead to a clear conversion path, or cause high bounce rates.</div></div></div>
+        <div class="card moverow lk"><div class="mn">4</div><div><div class="mrt">Code · Agent Ready</div><div class="mrd">Schema, speed, and agent-readiness, run by tools we trust.</div></div></div>
+        <div class="card moverow lk"><div class="mn">5</div><div><div class="mrt">Cost &amp; ROI</div><div class="mrd">What fixing your site is worth, in dollars.</div></div></div>
+        <div class="card moverow lk"><div class="mn">6</div><div><div class="mrt">Conversation</div><div class="mrd">Talk with Kevin Barber, Head of AI Growth at Lean Labs.</div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Step 1 · Copy -->
+<section data-screen="copy" hidden>
+<div class="screen">
+  <div class="report">
+    <aside class="side card">
+      <div class="dialwrap">
+        <div class="dial" style="background:conic-gradient(#00D492 0 70%,#212121 70% 100%)"><div class="in">B-</div></div>
+        <span class="dl">Copy Grade</span>
+      </div>
+      <div class="fx col gap16">
+        <div class="cbar"><div class="top"><span class="cn">Clarity</span><span class="cg">B+</span></div><div class="track"><div class="fill g-good" style="width:85%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Message–market fit</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Value proposition</span><span class="cg">C+</span></div><div class="track"><div class="fill g-mid" style="width:63%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Differentiation</span><span class="cg">C-</span></div><div class="track"><div class="fill g-mid" style="width:48%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Voice &amp; emotion</span><span class="cg">B</span></div><div class="track"><div class="fill g-good" style="width:78%"></div></div></div>
+      </div>
+      <button class="btnp w100">Book a Website Makeover Call</button>
+      <div class="sidenote">No credit card needed.</div>
+    </aside>
+    <div>
+      <span class="movepill">Genius Move #1</span>
+      <div class="movetitle">Copy</div>
+      <div class="movewhy">Great design is rooted in strong copy, and if the copy is weak or misleading, it affects everything else. This is why we start here.</div>
+      <div class="rhero">
+        <div class="rhtext">
+          <div class="hverdict">Results: Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.</div>
+          <div class="hsum">We analyzed your home page &amp; solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.</div>
+          <div class="metaline"><span class="mtag">Homepage + solution page</span><span class="mtag">1,240 words</span><span class="mtag">Reading level · Grade 9</span></div>
+        </div>
+        <div class="shot">
+          <image-slot id="shot-copy" data-placeholder="Screenshot of your page"></image-slot>
+          <div class="pin" style="top:24px;left:28px">1</div><div class="pin" style="top:80px;left:240px">2</div><div class="pin" style="top:130px;left:80px">3</div><div class="pin" style="top:164px;left:200px">4</div>
+        </div>
+      </div>
+      <div class="sectlab"><span class="n">Findings</span><h3>Copy critique</h3><span class="ln"></span></div>
+      <div class="cols2">
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You lack an intermediate CTA</span></div><span class="rgrade t-mid">C</span></div><div class="rv">The hero offers three competing links and no single obvious next step.</div><div class="rx">Fix · Lead with one primary action above the fold.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">You overcome objections well</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Your FAQ and risk-reversal copy pre-empt the top buyer concerns before they’re asked.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your value proposition is “buried”</span></div><span class="rgrade t-mid">C+</span></div><div class="rv">The outcome appears below the fold, underneath your credentials and awards.</div><div class="rx">Fix · Open with the result, a predictable pipeline.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Your differentiation is thin</span></div><span class="rgrade t-mid">C-</span></div><div class="rv">“HubSpot Diamond Partner” is a category, not a difference. Nothing only you could say.</div><div class="rx">Fix · Make a claim unique to Lean Labs.</div></div>
+      </div>
+      <div class="card overall">
+        <div class="og t-good">B-</div>
+        <div><div class="ot">Overall performance · Grade B-</div><div class="os">Strong fundamentals; the goal is a buyer-first value proposition.</div></div>
+      </div>
+      <div class="swp">
+        <div class="card swpc"><div class="sl">Biggest strength</div><div class="sv">Clarity &amp; objection-handling</div></div>
+        <div class="card swpc"><div class="sl">Biggest weakness</div><div class="sv">Buyer-outcome value prop</div></div>
+        <div class="card swpc hot"><div class="sl">Improvement priority</div><div class="sv">Rewrite the hero headline</div></div>
+      </div>
+      <div class="card teaser">
+        <div class="f1">
+          <div class="tup">Up next · Genius Move #2</div>
+          <div class="ttl">Credibility, the proof-point audit</div>
+          <div class="tone">Great copy makes a promise. Next we check whether the page backs it up. How trustworthy and authoritative is your brand to buyers and AI?</div>
+        </div>
+        <button class="btnp" data-go="credibility">Continue to Credibility →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Step 2 · Credibility -->
+<section data-screen="credibility" hidden>
+<div class="screen">
+  <div class="report">
+    <aside class="side card">
+      <div class="dialwrap">
+        <div class="dial" style="background:conic-gradient(#FFA600 0 55%,#212121 55% 100%)"><div class="in">C</div></div>
+        <span class="dl">Credibility Grade</span>
+      </div>
+      <div class="fx col gap16">
+        <div class="cbar"><div class="top"><span class="cn">Experience</span><span class="cg">B</span></div><div class="track"><div class="fill g-good" style="width:78%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Expertise</span><span class="cg">B+</span></div><div class="track"><div class="fill g-good" style="width:85%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Authoritativeness</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Trust</span><span class="cg">C-</span></div><div class="track"><div class="fill g-mid" style="width:48%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Proof coverage</span><span class="cg">1 / 6</span></div><div class="track"><div class="fill g-bad" style="width:17%"></div></div></div>
+      </div>
+      <button class="btnp w100">Book a Website Makeover Call</button>
+      <div class="sidenote">On-site analysis · EEAT included</div>
+    </aside>
+    <div>
+      <span class="movepill">Genius Move #2</span>
+      <div class="movetitle">Credibility</div>
+      <div class="movewhy">How trustworthy and authoritative your brand is to buyers and AI. Any website should focus on credibility as a key component.</div>
+      <div class="rhero">
+        <div class="rhtext">
+          <div class="hverdict">Your website makes claims that can’t be substantiated, which hurts your credibility.</div>
+          <div class="hsum">An on-site proof-point audit of your solution page. For each claim we check whether it’s backed by a stat, whether the social proof is relevant, and whether that proof actually relates to the claim.</div>
+          <div class="metaline"><span class="mtag">On-site only</span><span class="mtag">Solution page</span><span class="mtag">EEAT</span></div>
+        </div>
+        <div class="shot">
+          <image-slot id="shot-cred" data-placeholder="Screenshot of your solution page"></image-slot>
+          <div class="pin" style="top:28px;left:32px">1</div><div class="pin" style="top:110px;left:66px">2</div><div class="pin" style="top:76px;left:210px">3</div><div class="pin" style="top:160px;left:160px">4</div>
+        </div>
+      </div>
+      <div class="sectlab"><span class="n">Findings</span><h3>Proof-point audit</h3><span class="ln"></span></div>
+      <div class="cols2">
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">3 of 6 core claims have no proof</span></div><span class="rgrade t-bad">D</span></div><div class="rv">“Predictable pipeline”, “used by high-growth teams”, and “2–3× faster” carry no stat or example.</div><div class="rx">Fix · Add a sourced stat or named result to each claim.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your credential badges are strong</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Diamond Partner status and the client logo wall establish a solid baseline of authority.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your revenue stat has no source</span></div><span class="rgrade t-mid">C</span></div><div class="rv">“$100M+ generated” appears with no source, date, or link, easy to doubt.</div><div class="rx">Fix · Cite the source and timeframe.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">No testimonials on your solution page</span></div><span class="rgrade t-bad">D</span></div><div class="rv">Zero quotes tied to this specific offer; social proof lives elsewhere on the site.</div><div class="rx">Fix · Add one named quote tied to the offer.</div></div>
+      </div>
+      <div class="sectlab"><span class="n">Next</span><h3>What should I do next?</h3><span class="ln"></span></div>
+      <div class="tscroll">
+        <table class="tbl">
+          <thead><tr><th>Claim</th><th>Current proof</th><th>Recommendation</th></tr></thead>
+          <tbody>
+            <tr><td class="claim">“$100M+ in revenue generated”</td><td>Stat, no source</td><td>Add source + date + link</td></tr>
+            <tr><td class="claim">“A predictable pipeline”</td><td>None</td><td>Add a named client result</td></tr>
+            <tr><td class="claim">“Used by high-growth teams”</td><td>Unnamed logos</td><td>Name the logos / add a quote</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card teaser">
+        <div class="f1">
+          <div class="tup">Up next · Genius Move #3</div>
+          <div class="ttl">Conversions</div>
+          <div class="tone">You’ve established credibility. Now, do your pages give buyers a way to move forward?</div>
+        </div>
+        <button class="btnp" data-go="conversion">Continue to Conversion →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Step 3 · Conversion -->
+<section data-screen="conversion" hidden>
+<div class="screen">
+  <div class="report">
+    <aside class="side card">
+      <div class="dialwrap">
+        <div class="dial" style="background:conic-gradient(#FFA600 0 45%,#212121 45% 100%)"><div class="in">C-</div></div>
+        <span class="dl">Conversion Grade</span>
+      </div>
+      <div class="fx col gap16">
+        <div class="cbar"><div class="top"><span class="cn">Offer diversity</span><span class="cg">D</span></div><div class="track"><div class="fill g-bad" style="width:28%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">On-page solution steps</span><span class="cg">D</span></div><div class="track"><div class="fill g-bad" style="width:34%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Path clarity</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:55%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">CTA strength</span><span class="cg">C+</span></div><div class="track"><div class="fill g-mid" style="width:65%"></div></div></div>
+      </div>
+      <button class="btnp w100">Book a Website Makeover Call</button>
+    </aside>
+    <div>
+      <span class="movepill">Genius Move #3</span>
+      <div class="movetitle">Conversion</div>
+      <div class="movewhy">Your sole offer is a demo, which misses a big opportunity to capture more buyers with additional conversion opportunities.</div>
+      <div class="gate">
+        <div class="fx ac jb gap12" style="flex-wrap:wrap"><div class="ttl" style="margin:0">Run the landing-page critique</div></div>
+        <div class="hr"></div>
+        <div class="cols2">
+          <div><label class="flab" for="gate-email">Work email</label><input class="field" id="gate-email" type="email" placeholder="you@company.com"></div>
+          <div><label class="flab" for="gate-url">Landing / solution page URL</label><input class="field" id="gate-url" type="url" placeholder="https://yoursite.com/offer"></div>
+        </div>
+        <div style="margin-top:16px"><button class="btnp">Get my FREE report now</button></div>
+      </div>
+      <div class="rhero">
+        <div class="rhtext">
+          <div class="hverdict">You only have one offer.</div>
+          <div class="hsum">For your growth-marketing-team solution page, you only show a single offer: a demo. Buyers who want a different conversion path will likely bounce.</div>
+          <div class="metaline"><span class="mtag">Landing / solution page</span></div>
+        </div>
+        <div class="shot">
+          <image-slot id="shot-conv" data-placeholder="Screenshot of your landing page"></image-slot>
+          <div class="pin" style="top:30px;left:36px">1</div><div class="pin" style="top:88px;left:160px">2</div><div class="pin" style="top:128px;left:64px">3</div><div class="pin" style="top:162px;left:190px">4</div>
+        </div>
+      </div>
+      <div class="sectlab"><span class="n">Findings</span><h3>Conversion critique</h3><span class="ln"></span></div>
+      <div class="cols2">
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You’re showing only one offer</span></div><span class="rgrade t-bad">D</span></div><div class="rv">The demo call is the sole conversion point, nothing for visitors who aren’t sales-ready.</div><div class="rx">Fix · Add a low-commitment offer (template, calculator, mini-class).</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your page has no alternate conversion points</span></div><span class="rgrade t-bad">D</span></div><div class="rv">No on-page steps or framework, the demo carries all the persuasion weight.</div><div class="rx">Fix · Add a 3-step “how it works” on the page.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Demo CTA is unmistakable</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">For a ready-to-buy visitor, the primary action is obvious and repeated.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Users higher in the funnel are left out</span></div><span class="rgrade t-mid">C-</span></div><div class="rv">Visit → demo → exit. No nurture path captures the ~97% who don’t book.</div><div class="rx">Fix · Route them to a lead magnet, then nurture.</div></div>
+      </div>
+      <div class="sectlab"><span class="n">Offer ladder</span><h3>You only have one offer</h3><span class="ln"></span></div>
+      <div class="offers">
+        <div class="offer have"><span class="ck">✓</span>Demo call</div>
+        <div class="offer missing"><span class="ck">+</span>Mini-class</div>
+        <div class="offer missing"><span class="ck">+</span>Workshop</div>
+        <div class="offer missing"><span class="ck">+</span>Template</div>
+        <div class="offer missing"><span class="ck">+</span>Checklist</div>
+        <div class="offer missing"><span class="ck">+</span>Toolkit</div>
+        <div class="offer missing"><span class="ck">+</span>Calculator</div>
+        <div class="offer missing"><span class="ck">+</span>Webinar</div>
+        <div class="offer missing"><span class="ck">+</span>Accelerator</div>
+      </div>
+      <div class="card teaser">
+        <div class="f1">
+          <div class="tup">Up next · Genius Move #4</div>
+          <div class="ttl">Code</div>
+          <div class="tone">Copy and offers are covered, now we’ll look at your technical foundation, scored by three tools.</div>
+        </div>
+        <button class="btnp" data-go="code">Continue to Code →</button>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Step 4 · Code -->
+<section data-screen="code" hidden>
+<div class="screen">
+  <div style="max-width:980px;margin:0 auto">
+    <span class="movepill">Genius Move #4</span>
+    <div class="movetitle">Code</div>
+    <div class="movesub">LLM Agent Ready</div>
+    <div class="movewhy">Your technical foundation, scored by tools we trust. Three reports we can run for you, each opens in a new tab.</div>
+    <div class="cols3" style="margin-top:28px">
+      <div class="card rcard">
+        <div><div class="rt" style="font-size:18px">Schema Score</div><div class="toolby">Lean Labs</div></div>
+        <div class="rv" style="flex:1">Is your structured data set up so search and AI can read your site and its offers?</div>
+        <a class="btnp w100" href="https://schemascore.ai/" target="_blank" rel="noopener">Run Schema Score ↗</a>
+      </div>
+      <div class="card rcard">
+        <div><div class="rt" style="font-size:18px">Speed · Core Web Vitals</div><div class="toolby">Google PageSpeed</div></div>
+        <div class="rv" style="flex:1">How fast your pages load on mobile and desktop. Slow pages cost conversions.</div>
+        <a class="btnp w100" href="https://pagespeed.web.dev/" target="_blank" rel="noopener">Open PageSpeed ↗</a>
+      </div>
+      <div class="card rcard">
+        <div><div class="rt" style="font-size:18px">Is it agent ready?</div><div class="toolby">Cloudflare</div></div>
+        <div class="rv" style="flex:1">Can AI agents and crawlers access, read, and act on your site? A new front door.</div>
+        <a class="btnp w100" href="https://agentready.com/" target="_blank" rel="noopener">Run Agent Ready ↗</a>
+      </div>
+    </div>
+    <div class="card teaser">
+      <div class="f1">
+        <div class="tup">Up next · Genius Move #5</div>
+        <div class="ttl">Cost &amp; ROI of fixing your site</div>
+        <div class="tone">See exactly what fixing your website is worth, in dollars.</div>
+      </div>
+      <button class="btnp" data-go="cost">Get Your Real ROI Here →</button>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- Step 5 · Cost & ROI -->
+<section data-screen="cost" hidden>
+<div class="screen">
+  <div class="card placeholder">
+    <span class="movepill">Genius Move #5</span>
+    <div class="movetitle" style="margin-top:18px">Cost &amp; ROI of fixing your site</div>
+    <div class="hsum" style="margin:14px auto 0;max-width:44ch">See exactly what fixing your website is worth, in dollars.</div>
+    <div style="margin-top:28px"><button class="btnp" data-go="conversation">Get Your Real ROI Here →</button></div>
+  </div>
+</div>
+</section>
+
+<!-- Step 6 · Conversation -->
+<section data-screen="conversation" hidden>
+<div class="screen">
+  <div class="report">
+    <aside class="side card">
+      <div class="dialwrap">
+        <div class="dial" style="background:conic-gradient(#FFA600 0 62%,#212121 62% 100%)"><div class="in">C+</div></div>
+        <span class="dl">Overall Grade</span>
+      </div>
+      <div class="fx col gap16">
+        <div class="cbar"><div class="top"><span class="cn">Copy</span><span class="cg">B-</span></div><div class="track"><div class="fill g-good" style="width:70%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Credibility</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
+        <div class="cbar"><div class="top"><span class="cn">Conversion</span><span class="cg">C-</span></div><div class="track"><div class="fill g-mid" style="width:48%"></div></div></div>
+      </div>
+      <div class="sidenote">4 graded moves + 3 technical reports</div>
+    </aside>
+    <div>
+      <span class="movepill">Genius Move #6</span>
+      <div class="movetitle">Conversation</div>
+      <div class="movewhy">You’ve seen every move. Let’s pick the fastest wins and talk them through.</div>
+      <div class="rhero">
+        <div class="rhtext">
+          <div class="hverdict">Talk with Kevin Barber, Head of AI Growth at Lean Labs.</div>
+          <div class="hsum">Your site is clear and credible-looking, but it under-proves its claims and gives visitors only one way to act. Here’s what we’d fix first.</div>
+        </div>
+        <div class="shot" style="width:220px;min-height:220px">
+          <image-slot id="kevin-photo" data-placeholder="Photo of Kevin"></image-slot>
+        </div>
+      </div>
+      <div class="sectlab"><span class="n">Priority</span><h3>What we’d fix first</h3><span class="ln"></span></div>
+      <div class="fixes">
+        <div class="card fix"><div class="fixn">1</div><div><div class="ft">Back your 3 unproven claims with sourced stats + one named result</div><div class="fd">The quickest belief win. Add a source to the revenue stat and one client result to the solution page.</div></div></div>
+        <div class="card fix"><div class="fixn">2</div><div><div class="ft">Add one low-commitment offer beyond the demo</div><div class="fd">A template, calculator, or mini-class to capture visitors who aren’t ready to book yet.</div></div></div>
+        <div class="card fix"><div class="fixn">3</div><div><div class="ft">Rewrite the hero to lead with the buyer’s outcome</div><div class="fd">Open with the result, a predictable pipeline, before the credentials.</div></div></div>
+      </div>
+      <div class="bookrow">
+        <div class="card" style="padding:32px">
+          <div class="tup">Talk to a real human</div>
+          <div class="hverdict" style="font-size:22px;margin-top:10px">Book a Website Makeover Call</div>
+          <div class="hsum" style="margin-top:10px">30 minutes with Kevin. We’ll walk your report line by line and leave you with a prioritized plan, whether or not we work together.</div>
+          <div class="hr"></div>
+          <div class="fx col gap12" style="align-items:stretch">
+            <button class="btnp" style="padding:16px 24px;font-size:17px">Book with Kevin →</button>
+            <button class="btns">Email me the full report (PDF)</button>
+          </div>
+        </div>
+        <div class="card" style="min-height:280px;padding:8px">
+          <div class="slotwrap">
+            <image-slot id="scheduler" data-placeholder="Scheduling calendar"></image-slot>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</section>
+
+<script>
+// image-slot: lightweight stand-in for the design-canvas component.
+// Fills its positioned parent; shows the placeholder label until a real image src is set.
+customElements.define('image-slot', class extends HTMLElement {
+  connectedCallback() {
+    const src = this.getAttribute('src');
+    if (src) {
+      this.innerHTML = '<img src="' + src + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">';
+    } else {
+      this.innerHTML = '<span class="ph">' + (this.dataset.placeholder || 'Image') + '</span>';
+    }
+  }
+});
+
+const ORDER = ['entry', 'copy', 'credibility', 'conversion', 'code', 'cost', 'conversation'];
+let move = 'entry';
+
+function render() {
+  const cur = ORDER.indexOf(move);
+  document.querySelectorAll('.step').forEach(btn => {
+    const i = ORDER.indexOf(btn.dataset.step);
+    btn.classList.remove('done', 'active', 'sel', 'next', 'locked');
+    let st;
+    if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
+    else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
+    else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
+    else { btn.classList.add('locked'); st = 'Locked'; }
+    btn.querySelector('.sst').textContent = st;
+  });
+  document.querySelectorAll('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== move; });
+}
+
+function go(k) {
+  move = k;
+  history.replaceState(null, '', '#' + k);
+  render();
+  window.scrollTo(0, 0);
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go]');
+  if (t) go(t.dataset.go);
+});
+
+const h = location.hash.slice(1);
+if (ORDER.includes(h)) move = h;
+render();
+</script>
+</body>
+</html>

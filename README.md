@@ -2,7 +2,9 @@
 
 Working prototype of the Website Genie grade report: the funnel where a prospect enters their solution-page URL and gets a graded breakdown across 6 "Genius Moves", ending in a call with Kevin.
 
-**To view: clone the repo and open `index.html` in a browser. No build, no install.**
+**Live click-through: https://leanlabs0.github.io/website-genie/**
+
+(Or clone the repo and open `index.html` in a browser. No build, no install.)
 
 - Design source of truth: [Claude Design project "Website Genie Output Wireframes"](https://claude.ai/design/p/329527b4-99dc-40ab-885f-f141bb267731?file=Website+Genie+Prototype.dc.html)
 - This repo: the implemented, clickable version of that design. Single HTML file, vanilla JS, no dependencies.

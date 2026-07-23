@@ -93,13 +93,13 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 - **CTA targets**: "Book a Website Makeover Call" / "Book with Kevin" buttons have no URL yet.
 - **Cost & ROI screen**: placeholder only, needs design.
 - **"Email me the full report (PDF)"**: print stylesheet exists (page-per-screen), no generation flow.
-- **Agent Ready link**: points at `agentready.com` per the design, confirm final tool URL.
 - **Public API key**: `API_KEY` in `js/app.js` is a placeholder; paste the low-privilege public scanner key before go-live.
 - **Email gate scope**: v1 locks nothing; decide if it should gate pages 3-6 or the PDF.
 - **Shareable report links**: pending backend `report_id` + `GET /report/{id}`; frontend hook (`?r=`) is dormant.
 
 Resolved since the prototype handoff:
 
+- ~~Agent Ready link: confirm final tool URL.~~ It is `isitagentready.com/{domain}`; the Code screen link carries the scanned host.
 - ~~Email gate: form fields exist, no submit endpoint.~~ Wired to `POST /api/v1/website-genie/lead`.
 - ~~Real grades/copy are hardcoded sample data. Production pulls from the Genie engine.~~ Wired: live scans render engine reports; the sample data now lives in `js/demo-data.js` as the demo/mock dataset.
 

@@ -503,6 +503,13 @@ function updateToolLinks(url) {
   if (!url) return;
   const ps = document.querySelector('[data-tool-link="pagespeed"]');
   if (ps) ps.href = 'https://pagespeed.web.dev/report?url=' + encodeURIComponent(url);
+  // isitagentready.com takes the bare host as a path segment, not a query.
+  const ar = document.querySelector('[data-tool-link="agentready"]');
+  if (ar) {
+    let host = '';
+    try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
+    ar.href = host ? 'https://isitagentready.com/' + host : 'https://isitagentready.com/';
+  }
 }
 
 // ---------------------------------------------------------------------------

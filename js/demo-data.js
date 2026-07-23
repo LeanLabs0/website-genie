@@ -43,7 +43,7 @@ window.GENIE_DEMO = {
   "copy": {
     "grade": "C-",
     "pct": 70,
-    "verdict": "Results: Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.",
+    "verdict": "Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.",
     "summary": "We analyzed your home page & solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.",
     "meta_tags": [
       "Homepage + solution page",

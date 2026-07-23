@@ -25,6 +25,66 @@ wireBookingLinks();
 const printBtn = document.getElementById('print-report');
 if (printBtn) printBtn.addEventListener('click', () => window.print());
 
+// ---------------------------------------------------------------------------
+// The scheduling panel on the Conversation screen.
+//
+// We have no booking integration: BOOKING_URL is a contact page. So this panel
+// is built to Chris's layout but it never behaves like a scheduler that works.
+// Three rules hold it honest:
+//   1. The month is the real current month, computed at load. The mockup shows
+//      a hardcoded "July 2026" grid, which would be a lie about availability
+//      the day it goes stale.
+//   2. No time slots are invented. The mockup's "9:00 PM / 9:30 PM" buttons
+//      would be fabricated availability, so the slot column is one real CTA.
+//   3. Every future day is an <a> to BOOKING_URL. Clicking anything opens the
+//      booking page; nothing silently does nothing. Past days are inert text.
+// ---------------------------------------------------------------------------
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+const DAYS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function buildScheduler() {
+  const grid = document.getElementById('sched-days');
+  if (!grid) return;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const today = now.getDate();
+
+  const monthEl = document.getElementById('sched-month');
+  if (monthEl) monthEl.textContent = MONTHS[m] + ' ' + y;
+
+  const dayEl = document.getElementById('sched-daylabel');
+  if (dayEl) dayEl.textContent = DAYS_SHORT[now.getDay()] + ' ' + today;
+
+  // The visitor's own timezone, read from the browser. Never a hardcoded city.
+  const tzEl = document.getElementById('sched-tz');
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (tzEl && tz) tzEl.textContent = 'Times shown in ' + tz + ' on the booking page';
+  } catch (e) { /* keep the neutral fallback already in the markup */ }
+
+  const first = new Date(y, m, 1).getDay();
+  const last = new Date(y, m + 1, 0).getDate();
+  const cells = [];
+  for (let i = 0; i < first; i++) cells.push(el('span', 'schedday'));
+  for (let d = 1; d <= last; d++) {
+    if (d < today) {
+      const past = el('span', 'schedday past', String(d));
+      past.setAttribute('aria-hidden', 'true');
+      cells.push(past);
+      continue;
+    }
+    const a = el('a', 'schedday' + (d === today ? ' today' : ''), String(d));
+    a.href = BOOKING_URL;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.setAttribute('aria-label', 'Book with Kevin, ' + MONTHS[m] + ' ' + d + ' or later');
+    cells.push(a);
+  }
+  grid.replaceChildren.apply(grid, cells);
+}
+
 // image-slot: lightweight stand-in for the design-canvas component.
 // Fills its positioned parent; shows the placeholder label until a real image src is set.
 // Reacts to a late `src` set via observedAttributes (the original element only read
@@ -469,10 +529,12 @@ function buildFinding(f) {
   const card = el('div', 'card rcard');
   const rh = el('div', 'rh');
   const rhl = el('div', 'rhl');
-  rhl.append(el('span', 'rnum', String(f.n)), el('span', 'rt', f.title));
+  // No ordinal chip: the design puts the grade chip above the title and nothing
+  // else. .rh is column-reverse, so the chip appended below renders first.
+  rhl.append(el('span', 'rt', f.title));
   rh.appendChild(rhl);
   if (f.pass) {
-    rh.appendChild(el('span', 'passbadge', '✓ PASS'));
+    rh.appendChild(el('span', 'passbadge', 'PASS'));
   } else if (f.pct == null) {
     // No score means no chip with a number in it.
     rh.appendChild(el('span', 'nagrade', 'Not graded'));
@@ -486,7 +548,11 @@ function buildFinding(f) {
     rh.appendChild(chip);
   }
   card.append(rh, el('div', 'rv', f.detail));
-  if (f.fix) card.appendChild(el('div', 'rx', 'Fix · ' + f.fix));
+  if (f.fix) {
+    const rx = el('div', 'rx');
+    rx.append(el('span', 'rxl', 'Fix:'), document.createTextNode(' ' + f.fix));
+    card.appendChild(rx);
+  }
   return card;
 }
 
@@ -561,7 +627,8 @@ function buildSwpCard(label, value, hot) {
 
 function buildFix(f) {
   const card = el('div', 'card fix');
-  card.appendChild(el('div', 'fixn', String(f.rank)));
+  // Two-digit chips, as designed: 01 / 02 / 03.
+  card.appendChild(el('div', 'fixn', String(f.rank).padStart(2, '0')));
   const body = document.createElement('div');
   body.append(el('div', 'ft', f.title), el('div', 'fd', f.detail));
   card.appendChild(body);
@@ -572,19 +639,24 @@ function buildFix(f) {
 // renderReport: bind a derived view onto the static screens.
 // ---------------------------------------------------------------------------
 
+// The unfilled part of the ring. Design token, not a neutral grey.
+const DIAL_TRACK = '#2B3036';
+
 function setDial(dialEl, grade, pct) {
   const inner0 = dialEl.querySelector('.in');
   // Nothing graded: an empty ring and words, never a letter over a 0.
   if (pct == null || grade == null) {
-    dialEl.style.background = '#212121';
+    dialEl.style.background = DIAL_TRACK;
     if (inner0) inner0.replaceChildren(el('span', 'dna', 'Not graded yet'));
     return;
   }
-  const color = BAND_COLORS[gradeBand(grade, pct)];
+  const band = gradeBand(grade, pct);
+  const color = BAND_COLORS[band];
   // Ring width still tracks pct; only the colour comes from the letter.
-  dialEl.style.background = 'conic-gradient(' + color + ' 0 ' + pct + '%,#212121 ' + pct + '% 100%)';
+  dialEl.style.background = 'conic-gradient(' + color + ' 0 ' + pct + '%,' + DIAL_TRACK + ' ' + pct + '% 100%)';
   const inner = dialEl.querySelector('.in');
-  if (inner) inner.replaceChildren(el('span', 'dg', grade), el('span', 'dp', pct + '/100'));
+  // The letter carries the band colour, as in the design.
+  if (inner) inner.replaceChildren(el('span', 'dg t-' + band, grade), el('span', 'dp', pct + '/100'));
 }
 
 function bindText(root, name, value) {
@@ -1674,6 +1746,7 @@ function setReportFlag() {
 const h = location.hash.slice(1);
 if (ORDER.includes(h)) move = h;
 render();
+buildScheduler();
 
 // ---------------------------------------------------------------------------
 // Cost & ROI: the visitor's own numbers, multiplied out. No invented benchmarks.

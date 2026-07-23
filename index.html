@@ -110,7 +110,9 @@ h3{margin:0}
 .rhl{display:flex;align-items:center;gap:10px}
 .rnum{width:24px;height:24px;border-radius:50%;background:#212121;color:#fff;font:600 12px/1 var(--font-heading);display:flex;align-items:center;justify-content:center;flex:none}
 .rcard .rt{font:600 16px/1.35 var(--font-heading);color:#fff}
-.rgrade{flex:none;display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:8px;background:#212121;font:600 14px/1 var(--font-heading)}
+.rgrade{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:48px;border-radius:8px;background:#212121;padding:7px 8px}
+.rgrade .rgl{font:600 14px/1 var(--font-heading)}
+.rgrade .rgn{font:500 11px/1 var(--font-body);color:#949494}
 .rcard .rv{font:400 14px/1.5 var(--font-body);color:#949494}
 .rcard .rx{font:500 13px/1.5 var(--font-body);color:#B0B0B0;border-top:1px solid #2B2B2B;padding-top:10px}
 .passbadge{flex:none;display:inline-flex;align-items:center;gap:6px;font:600 10px/1 var(--font-heading);letter-spacing:.1em;color:#00D492;background:rgba(0,212,146,.1);border-radius:100px;padding:8px 12px}
@@ -351,7 +353,7 @@ section[data-screen]{position:relative;z-index:1}
       <h1 class="eprompt">See what’s holding your website back in AI search, and exactly how to fix it fast.</h1>
       <div class="esub">Enter your most valuable product or solution page URL and get a full breakdown with fixes in 90 seconds or less.</div>
       <form id="scan-form" class="entryform" novalidate>
-        <input class="field" id="entry-url" type="url" placeholder="yourbrand.com/solution" aria-label="Your solution page URL">
+        <input class="field" id="entry-url" type="url" placeholder="yourbrand.com/solution" aria-label="Your solution page URL" aria-describedby="scan-error-msg">
         <button class="btnp" id="entry-submit">Reveal My Genius Moves →</button>
       </form>
       <div class="card no-print" id="scan-progress" hidden style="padding:24px;margin-top:24px">
@@ -360,7 +362,7 @@ section[data-screen]{position:relative;z-index:1}
         <div class="track" style="margin-top:18px"><div class="fill g-good" id="scan-bar" style="width:0%"></div></div>
         <div class="fnote" style="margin-top:12px">This can take about a minute. Keep this tab open.</div>
       </div>
-      <div class="card no-print" id="scan-error" hidden style="padding:24px;margin-top:24px;box-shadow:inset 0 0 0 1px #E5484D">
+      <div class="card no-print" id="scan-error" role="alert" aria-live="assertive" hidden style="padding:24px;margin-top:24px;box-shadow:inset 0 0 0 1px #E5484D">
         <div class="tup" id="scan-error-title" style="color:#E5484D">Scan failed</div>
         <div class="ttl" id="scan-error-msg" style="margin-top:8px">Something went wrong running your scan. Please try again.</div>
         <div style="margin-top:18px"><button class="btns" id="scan-retry" type="button">Try again</button></div>
@@ -428,10 +430,10 @@ section[data-screen]{position:relative;z-index:1}
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Copy critique</h3><span class="ln"></span></div>
       <div class="cols2" data-findings>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You lack an intermediate CTA</span></div><span class="rgrade t-bad" title="F · 55 out of 100">F</span></div><div class="rv">The hero offers three competing links and no single obvious next step.</div><div class="rx">Fix · Lead with one primary action above the fold.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You lack an intermediate CTA</span></div><span class="rgrade t-bad" title="F · 55 out of 100"><span class="rgl">F</span><span class="rgn">55/100</span></span></div><div class="rv">The hero offers three competing links and no single obvious next step.</div><div class="rx">Fix · Lead with one primary action above the fold.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">You overcome objections well</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Your FAQ and risk-reversal copy pre-empt the top buyer concerns before they’re asked.</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your value proposition is “buried”</span></div><span class="rgrade t-mid" title="D · 63 out of 100">D</span></div><div class="rv">The outcome appears below the fold, underneath your credentials and awards.</div><div class="rx">Fix · Open with the result, a predictable pipeline.</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Your differentiation is thin</span></div><span class="rgrade t-bad" title="F · 48 out of 100">F</span></div><div class="rv">“HubSpot Diamond Partner” is a category, not a difference. Nothing only you could say.</div><div class="rx">Fix · Make a claim unique to Lean Labs.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your value proposition is “buried”</span></div><span class="rgrade t-mid" title="D · 63 out of 100"><span class="rgl">D</span><span class="rgn">63/100</span></span></div><div class="rv">The outcome appears below the fold, underneath your credentials and awards.</div><div class="rx">Fix · Open with the result, a predictable pipeline.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Your differentiation is thin</span></div><span class="rgrade t-bad" title="F · 48 out of 100"><span class="rgl">F</span><span class="rgn">48/100</span></span></div><div class="rv">“HubSpot Diamond Partner” is a category, not a difference. Nothing only you could say.</div><div class="rx">Fix · Make a claim unique to Lean Labs.</div></div>
       </div>
       <div class="card overall" data-overall>
         <div class="og t-mid">C-</div>
@@ -490,10 +492,10 @@ section[data-screen]{position:relative;z-index:1}
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Proof-point audit</h3><span class="ln"></span></div>
       <div class="cols2" data-findings>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">3 of 6 core claims have no proof</span></div><span class="rgrade t-bad" title="F · 32 out of 100">F</span></div><div class="rv">“Predictable pipeline”, “used by high-growth teams”, and “2–3× faster” carry no stat or example.</div><div class="rx">Fix · Add a sourced stat or named result to each claim.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">3 of 6 core claims have no proof</span></div><span class="rgrade t-bad" title="F · 32 out of 100"><span class="rgl">F</span><span class="rgn">32/100</span></span></div><div class="rv">“Predictable pipeline”, “used by high-growth teams”, and “2–3× faster” carry no stat or example.</div><div class="rx">Fix · Add a sourced stat or named result to each claim.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your credential badges are strong</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Diamond Partner status and the client logo wall establish a solid baseline of authority.</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your revenue stat has no source</span></div><span class="rgrade t-bad" title="F · 55 out of 100">F</span></div><div class="rv">“$100M+ generated” appears with no source, date, or link, easy to doubt.</div><div class="rx">Fix · Cite the source and timeframe.</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">No testimonials on your solution page</span></div><span class="rgrade t-bad" title="F · 30 out of 100">F</span></div><div class="rv">Zero quotes tied to this specific offer; social proof lives elsewhere on the site.</div><div class="rx">Fix · Add one named quote tied to the offer.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your revenue stat has no source</span></div><span class="rgrade t-bad" title="F · 55 out of 100"><span class="rgl">F</span><span class="rgn">55/100</span></span></div><div class="rv">“$100M+ generated” appears with no source, date, or link, easy to doubt.</div><div class="rx">Fix · Cite the source and timeframe.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">No testimonials on your solution page</span></div><span class="rgrade t-bad" title="F · 30 out of 100"><span class="rgl">F</span><span class="rgn">30/100</span></span></div><div class="rv">Zero quotes tied to this specific offer; social proof lives elsewhere on the site.</div><div class="rx">Fix · Add one named quote tied to the offer.</div></div>
       </div>
       <div class="sectlab"><span class="n">Next</span><h3>What should I do next?</h3><span class="ln"></span></div>
       <div class="tswrap">
@@ -551,13 +553,13 @@ section[data-screen]{position:relative;z-index:1}
         <div class="cols2" style="margin-top:20px">
           <div>
             <label class="flab" for="gate-email">Work email</label>
-            <input class="field" id="gate-email" type="email" placeholder="you@company.com" autocomplete="email">
-            <div class="ferr" id="gate-email-err" hidden></div>
+            <input class="field" id="gate-email" type="email" placeholder="you@company.com" autocomplete="email" aria-describedby="gate-email-err">
+            <div class="ferr" id="gate-email-err" role="alert" aria-live="assertive" hidden></div>
           </div>
           <div>
             <label class="flab" for="gate-url">Your conversion or landing page URL</label>
-            <input class="field" id="gate-url" type="url" placeholder="yoursite.com/offer">
-            <div class="ferr" id="gate-url-err" hidden></div>
+            <input class="field" id="gate-url" type="url" placeholder="yoursite.com/offer" aria-describedby="gate-url-err">
+            <div class="ferr" id="gate-url-err" role="alert" aria-live="assertive" hidden></div>
           </div>
         </div>
         <div style="margin-top:16px"><button class="btnp" id="gate-submit" type="button">Grade my conversion page</button></div>
@@ -575,10 +577,10 @@ section[data-screen]{position:relative;z-index:1}
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Conversion critique</h3><span class="ln"></span></div>
       <div class="cols2" data-findings>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You’re showing only one offer</span></div><span class="rgrade t-bad" title="F · 28 out of 100">F</span></div><div class="rv">The demo call is the sole conversion point, nothing for visitors who aren’t sales-ready.</div><div class="rx">Fix · Add a low-commitment offer (template, calculator, mini-class).</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your page has no alternate conversion points</span></div><span class="rgrade t-bad" title="F · 34 out of 100">F</span></div><div class="rv">No on-page steps or framework, the demo carries all the persuasion weight.</div><div class="rx">Fix · Add a 3-step “how it works” on the page.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You’re showing only one offer</span></div><span class="rgrade t-bad" title="F · 28 out of 100"><span class="rgl">F</span><span class="rgn">28/100</span></span></div><div class="rv">The demo call is the sole conversion point, nothing for visitors who aren’t sales-ready.</div><div class="rx">Fix · Add a low-commitment offer (template, calculator, mini-class).</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your page has no alternate conversion points</span></div><span class="rgrade t-bad" title="F · 34 out of 100"><span class="rgl">F</span><span class="rgn">34/100</span></span></div><div class="rv">No on-page steps or framework, the demo carries all the persuasion weight.</div><div class="rx">Fix · Add a 3-step “how it works” on the page.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Demo CTA is unmistakable</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">For a ready-to-buy visitor, the primary action is obvious and repeated.</div></div>
-        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Users higher in the funnel are left out</span></div><span class="rgrade t-bad" title="F · 45 out of 100">F</span></div><div class="rv">Visit → demo → exit. No nurture path captures the ~97% who don’t book.</div><div class="rx">Fix · Route them to a lead magnet, then nurture.</div></div>
+        <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Users higher in the funnel are left out</span></div><span class="rgrade t-bad" title="F · 45 out of 100"><span class="rgl">F</span><span class="rgn">45/100</span></span></div><div class="rv">Visit → demo → exit. No nurture path captures the ~97% who don’t book.</div><div class="rx">Fix · Route them to a lead magnet, then nurture.</div></div>
       </div>
       <div class="sectlab"><span class="n">Offer ladder</span><h3 data-bind="offer-headline">One of the 9 offer types shows up on this page</h3><span class="ln"></span></div>
       <div class="offers" id="offer-grid">

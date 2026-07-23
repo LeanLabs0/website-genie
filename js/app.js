@@ -151,6 +151,22 @@ function displayGrade(grade, pct) {
 
 const SECTION_KEYS = ['copy', 'credibility', 'conversion'];
 
+// A fix line sometimes arrives cut off mid-clause ("...like 'publish-ready
+// HubSpot pages in."). Intermittent, and being fixed engine-side, but a half
+// sentence printed as advice is worse than no advice: the tells are an opened
+// quote that never closes, or an ending on a dangling function word. The
+// finding's own detail still renders either way.
+const DANGLING_RE = /\b(?:in|on|at|to|for|with|of|and|or|the|a|an|by|from|into|about|as|that|which|like|than|so)\s*$/i;
+
+function looksTruncated(text) {
+  const t = String(text || '').trim();
+  if (!t) return true;
+  const opens = (t.match(/(^|[\s(\[])["'“‘]/g) || []).length;
+  const closes = (t.match(/["'”’]($|[\s.,;:)!?\]])/g) || []).length;
+  if (opens > closes) return true;
+  return DANGLING_RE.test(t.replace(/[.!?…]+$/, '').trim());
+}
+
 function deriveGenieView(raw) {
   const demo = window.GENIE_DEMO || {};
   // Only the demo/mock render (raw is the demo report itself, or nothing) may fall
@@ -362,7 +378,7 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
     n: f.n != null ? f.n : i + 1,
     title: f.title || '',
     detail: f.detail || '',
-    fix: f.fix || null,
+    fix: f.fix && !looksTruncated(f.fix) ? f.fix : null,
     pass: !!f.pass,
     display: pctOrNull(f.pct, f.grade) == null ? null : displayGrade(f.grade, f.pct),
     pct: pctOrNull(f.pct, f.grade),
@@ -461,7 +477,11 @@ function buildFinding(f) {
     // No score means no chip with a number in it.
     rh.appendChild(el('span', 'nagrade', 'Not graded'));
   } else {
-    const chip = el('span', 'rgrade t-' + gradeBand(f.display, f.pct), f.display);
+    // Same rule as the bars and the dials: the letter leads, the number backs
+    // it up. The Conversation screen cites "the lowest-scoring finding (F)", so
+    // the score behind that F has to be visible somewhere.
+    const chip = el('span', 'rgrade t-' + gradeBand(f.display, f.pct));
+    chip.append(el('span', 'rgl', f.display), el('span', 'rgn', f.pct + '/100'));
     chip.title = f.display + ' · ' + f.pct + ' out of 100';
     rh.appendChild(chip);
   }
@@ -1078,6 +1098,10 @@ function showEntryProblem(title, message) {
   setCtaScanning(false);
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
+  // Same rule as the gate: the alert node is revealed before its text changes,
+  // so the message is announced and not just painted red.
+  const card0 = document.getElementById('scan-error');
+  if (card0) card0.hidden = false;
   const t = document.getElementById('scan-error-title');
   if (t) t.textContent = title;
   const msg = document.getElementById('scan-error-msg');
@@ -1090,7 +1114,7 @@ function showEntryProblem(title, message) {
   if (card) card.hidden = false;
   setEntryBusy(true);
   const input = document.getElementById('entry-url');
-  if (input) { input.classList.add('invalid'); input.focus(); }
+  if (input) { input.classList.add('invalid'); input.setAttribute('aria-invalid', 'true'); input.focus(); }
   render();
 }
 
@@ -1098,7 +1122,7 @@ function clearEntryProblem() {
   const card = document.getElementById('scan-error');
   if (card) card.hidden = true;
   const input = document.getElementById('entry-url');
-  if (input) input.classList.remove('invalid');
+  if (input) { input.classList.remove('invalid'); input.removeAttribute('aria-invalid'); }
   setEntryBusy(false);
 }
 
@@ -1469,11 +1493,22 @@ function setGateScanning(on, message, pct) {
 // submit is a type=button, so native validation never fired: bad input produced
 // no border, no message and no request. Total silence at the highest-intent
 // moment on the site.
+// Sighted visitors got a red border and a red line; a screen reader user got
+// silence. The field is marked invalid and the message lives in a role="alert"
+// node, which has to be IN the accessibility tree before its text changes or
+// the announcement never fires. So: unhide first, then write.
 function setFieldError(inputId, errId, message) {
   const input = document.getElementById(inputId);
   const err = document.getElementById(errId);
-  if (input) input.classList.toggle('invalid', !!message);
-  if (err) { err.textContent = message || ''; err.hidden = !message; }
+  if (input) {
+    input.classList.toggle('invalid', !!message);
+    if (message) input.setAttribute('aria-invalid', 'true');
+    else input.removeAttribute('aria-invalid');
+  }
+  if (err) {
+    if (message) { err.hidden = false; err.textContent = message; }
+    else { err.textContent = ''; err.hidden = true; }
+  }
   return !message;
 }
 

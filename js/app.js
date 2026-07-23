@@ -504,7 +504,12 @@ async function runScan(url, email, onPhase) {
         if (!data) continue; // heartbeats / comments
         let evt;
         try { evt = JSON.parse(data); } catch (e) { continue; }
-        if (evt.phase === 'complete') return evt.result;
+        if (evt.phase === 'complete') {
+          // Accept both the bare report and the JSON path's
+          // {report, duration_ms, cost_usd} wrapper.
+          const r = evt.result;
+          return (r && r.report && !r.copy) ? r.report : r;
+        }
         if (evt.phase === 'error') throw scanError(evt.status);
         if (onPhase) onPhase(evt);
       }
@@ -587,6 +592,7 @@ function setProgress(pct, message) {
 function showScanError(err) {
   state.mode = 'error';
   state.phaseText = '';
+  setCtaScanning(false);
   state.errorKind = err && err.kind != null ? err.kind : null;
   state.unlockedThrough = 'conversation';
   const progress = document.getElementById('scan-progress');
@@ -598,6 +604,15 @@ function showScanError(err) {
   render();
 }
 
+function setCtaScanning(on) {
+  const cta = document.getElementById('entry-submit');
+  if (!cta) return;
+  cta.disabled = on;
+  cta.style.opacity = on ? '.6' : '';
+  if (on) { cta.dataset.label = cta.textContent; cta.textContent = 'Scanning…'; }
+  else if (cta.dataset.label) { cta.textContent = cta.dataset.label; }
+}
+
 function startScan(url) {
   state.mode = 'scanning';
   state.unlockedThrough = 'entry';
@@ -605,8 +620,11 @@ function startScan(url) {
   state.url = url;
   const errCard = document.getElementById('scan-error');
   if (errCard) errCard.hidden = true;
+  setCtaScanning(true);
   go('entry');
   setProgress(2, 'Starting your scan…');
+  const card = document.getElementById('scan-progress');
+  if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   let email = null;
   try { email = sessionStorage.getItem('genie:lead'); } catch (e) {}
   const impl = PARAMS.get('stub') ? stubScan : runScan;
@@ -623,6 +641,7 @@ function showReport(report) {
   const view = deriveGenieView(report);
   state.mode = 'ready';
   state.phaseText = '';
+  setCtaScanning(false);
   state.unlockedThrough = 'conversation';
   state.failed = {};
   SECTION_KEYS.forEach(k => { if (!view.sections[k].available) state.failed[k] = true; });

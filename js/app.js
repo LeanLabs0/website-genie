@@ -1,4 +1,4 @@
-// Website Genie — app logic (classic script, no build, no modules).
+// Website Genie app logic (classic script, no build, no modules).
 
 // image-slot: lightweight stand-in for the design-canvas component.
 // Fills its positioned parent; shows the placeholder label until a real image src is set.

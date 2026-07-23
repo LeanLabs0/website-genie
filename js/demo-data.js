@@ -1,4 +1,4 @@
-// Website Genie — demo report data.
+// Website Genie demo report data.
 // window.GENIE_DEMO is the FULL backend report contract (see README), populated with
 // the prototype's hardcoded sample values (Lean Labs' own site graded).
 // It doubles as the executable spec for the engine and as fallback defaults

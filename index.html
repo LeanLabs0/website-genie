@@ -234,7 +234,11 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
    on every screen. Clipped at the viewport, and squared off to viewport width
    on small screens for browsers without overflow clip. */
 html{overflow-x:clip}
-body{overflow-x:clip}
+/* position:relative is load-bearing, not cosmetic. body::before is absolutely
+   positioned, so without it the pseudo-element's containing block is the
+   initial containing block and it escapes body's clip entirely. That is why
+   the page still scrolled 170px sideways on desktop after the first fix. */
+body{position:relative;overflow-x:clip}
 body::before{content:'';position:absolute;top:-220px;left:50%;transform:translateX(-46%);
   width:1500px;height:760px;pointer-events:none;z-index:0;filter:blur(50px);
   background:

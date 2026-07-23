@@ -12,10 +12,23 @@ customElements.define('image-slot', class extends HTMLElement {
     const src = this.getAttribute('src');
     if (src) {
       const img = document.createElement('img');
-      img.src = src;
       img.alt = '';
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover';
       if (this.dataset.fit) img.style.objectPosition = this.dataset.fit;
+      // Screenshot uploads finish in the background, so the URL can 404 for a
+      // moment after the report renders. Retry a few times before giving up.
+      let tries = 0;
+      img.addEventListener('error', () => {
+        if (tries++ < 4) {
+          setTimeout(() => { img.src = src + '?r=' + tries; }, 1500 * tries);
+        } else {
+          this.closest('.shot')?.classList.add('noshot');
+        }
+      });
+      img.addEventListener('load', () => {
+        this.closest('.shot')?.classList.remove('noshot');
+      });
+      img.src = src;
       this.replaceChildren(img);
     } else {
       const ph = document.createElement('span');
@@ -414,6 +427,9 @@ function renderSectionScreen(key, sec) {
       slot.setAttribute('src', sec.shotUrl);
     }
     shot.querySelectorAll('.pin').forEach(p => p.remove());
+    // Pins floating over an empty placeholder read as broken. Only pin when
+    // there is a real screenshot to pin onto.
+    if (!sec.shotUrl) return;
     const defaults = DEFAULT_PINS[key] || [];
     sec.findings.forEach((f, i) => {
       if (f.pin) {
@@ -770,9 +786,12 @@ function normalizeUrl(value) {
 const ORDER = ['entry', 'copy', 'credibility', 'conversion', 'code', 'cost', 'conversation'];
 let move = 'entry';
 
+// Only a running scan blocks navigation. A section that failed or is awaiting
+// its own scan is still reachable: its screen shows an honest panel. Blocking
+// it made visible buttons ("Continue to Conversion") silently do nothing.
 function isLockedStep(k) {
   if (state.mode === 'scanning') return ORDER.indexOf(k) > ORDER.indexOf(state.unlockedThrough);
-  return !!state.failed[k];
+  return false;
 }
 
 function render() {

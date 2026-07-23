@@ -149,7 +149,24 @@ image-slot{position:absolute;inset:0;display:flex;align-items:center;justify-con
 image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:center;padding:16px}
 @media (max-width:1200px){.report{grid-template-columns:1fr}.side{position:static}}
 @media (max-width:900px){.cols2,.cols3,.swp{grid-template-columns:1fr}.shot{width:100%}.bookrow{grid-template-columns:1fr}.screen{padding:32px 20px 64px}.topbar,.railwrap{padding-left:20px;padding-right:20px}.eprompt{font-size:36px}.report{grid-template-columns:minmax(0,1fr)}.side{padding:20px;min-width:0;max-width:100%}.side .btnp{white-space:normal;padding:12px 16px;width:100%;box-sizing:border-box}.cbar,.cbar .top{min-width:0}.cbar .cn{overflow-wrap:anywhere}.teaser{flex-direction:column;align-items:flex-start;gap:16px;padding:20px}.teaser .btnp{white-space:normal;width:100%;box-sizing:border-box}}
-@media print{@page{size:1280px 1700px;margin:0}.topbar,.railwrap,.teaser{display:none}.screen{break-after:page}[hidden]{display:block!important}.no-print{display:none!important}}
+/* Print = the saved/forwarded copy of the report. It must contain the visitor's
+   real result and nothing else: no entry hero, no decorative sample card, no
+   forms, and no sample screens when no scan has run. */
+@media print{
+  @page{size:1280px 1700px;margin:0}
+  body::before{display:none!important}
+  .topbar,.railwrap,.teaser,.no-print,.navpill,.entryart,form,.gate,
+  #scan-progress,#scan-error,#gate-progress{display:none!important}
+  /* Reveal every screen that carries real content; never the entry screen. */
+  body.has-report [data-screen]:not([data-screen="entry"]){display:block!important}
+  body [data-screen="entry"]{display:none!important}
+  .screen{break-after:page;padding:40px 48px 48px}
+  .report{grid-template-columns:minmax(0,1fr);gap:24px}
+  .side{position:static;break-inside:avoid}
+  .side .btnp{display:none!important}
+  .cols2,.cols3,.swp{grid-template-columns:1fr 1fr}
+  .card{break-inside:avoid}
+}
 
 /* --- redesign: nav wordmark, entry hero, top glow (Chris, AEO Designs) --- */
 :root{--good:#00D492;--mid:#FFA600;--bad:#E5484D}
@@ -178,22 +195,22 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
 /* decorative preview cluster */
 .entryart{position:relative;min-height:400px;min-width:0}
 .artback{position:absolute;left:-30px;top:46px;width:420px;padding:26px;opacity:.5;filter:blur(.3px)}
-.artline{font:600 19px/1.4 var(--font-heading);color:#fff}
-.artsub{margin-top:10px;font:400 13px/1.5 var(--font-body);color:#949494}
+.skel{height:11px;border-radius:6px;background:#262626;margin-bottom:12px}
+.skel.w90{width:90%}.skel.w75{width:75%}.skel.w60{width:60%}
 .artmeta{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
-.artmeta span{font:500 11px/1 var(--font-body);color:#B0B0B0;background:#1C1C1C;border-radius:4px;padding:6px 9px}
+.artmeta .chip{height:24px;border-radius:4px;background:#1C1C1C}
+.artmeta .chip.w28{width:28%}.artmeta .chip.w20{width:20%}.artmeta .chip.w34{width:34%}
 .artfront{position:absolute;right:24px;top:0;width:196px;padding:22px 18px;z-index:2;box-shadow:0 30px 70px rgba(0,0,0,.6),inset 0 0 0 1px #2B2B2B}
+/* Neutral ring, empty centre: a shape, not a score. */
 .artdial{width:96px;height:96px;margin:0 auto;border-radius:50%;
-  background:conic-gradient(var(--good) 0 70%,#212121 70% 100%);display:grid;place-items:center}
-.artdial span{width:76px;height:76px;border-radius:50%;background:#141414;display:grid;place-items:center;
-  font:600 28px/1 var(--font-heading);color:var(--good)}
-.artdlab{font:600 9px/1 var(--font-heading);letter-spacing:.15em;text-transform:uppercase;color:#949494;text-align:center;margin-top:12px}
-.artbars{margin-top:18px;display:flex;flex-direction:column;gap:11px}
-.artbar{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
-.artbar span{font:400 11px/1.2 var(--font-body);color:#949494}
-.artbar b{font:600 11px/1 var(--font-heading);color:#fff}
-.artbar i{grid-column:1/-1;height:3px;border-radius:3px;background:#212121;position:relative}
-.artbar i::after{content:'';position:absolute;inset:0 auto 0 0;width:var(--w);border-radius:3px;background:var(--c)}
+  background:conic-gradient(#3F3F3F 0 68%,#212121 68% 100%);display:grid;place-items:center}
+.artdial span{width:76px;height:76px;border-radius:50%;background:#141414;display:grid;place-items:center}
+.artdlab{font:600 9px/1 var(--font-heading);letter-spacing:.15em;text-transform:uppercase;color:#757575;text-align:center;margin-top:12px}
+.artbars{margin-top:18px;display:flex;flex-direction:column;gap:14px}
+.artbar i{display:block;height:3px;border-radius:3px;background:#212121;position:relative}
+.artbar i::after{content:'';position:absolute;inset:0 auto 0 0;width:var(--w);border-radius:3px;background:#3F3F3F}
+/* While a scan runs or fails, the decoration gets out of the way entirely. */
+.entryscreen.busy .entryart{display:none}
 @media (max-width:1100px){
   .entry{grid-template-columns:1fr;gap:48px}
   .entryart{display:none}
@@ -268,22 +285,26 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
         <div style="margin-top:18px"><button class="btns" id="scan-retry" type="button">Try again</button></div>
       </div>
     </div>
+    <!-- Decoration only. Deliberately carries no letters, numbers or sentences:
+         an invented grade next to the entry field anchors the visitor before we
+         have graded anything, and it used to print into real reports. -->
     <div class="entryart" aria-hidden="true">
       <div class="card artback">
-        <div class="artline">Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.</div>
-        <div class="artsub">We analyzed your home page &amp; solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.</div>
-        <div class="artmeta"><span>Homepage + solution page</span><span>1,240 words</span></div>
-        <div class="artmeta"><span>Reading level · Grade 9</span></div>
+        <div class="skel w90"></div>
+        <div class="skel w75"></div>
+        <div class="skel w60"></div>
+        <div class="artmeta"><span class="chip w28"></span><span class="chip w20"></span></div>
+        <div class="artmeta"><span class="chip w34"></span></div>
       </div>
       <div class="card artfront">
-        <div class="artdial"><span>B-</span></div>
-        <div class="artdlab">Copy grade</div>
+        <div class="artdial"><span></span></div>
+        <div class="artdlab">Your grade goes here</div>
         <div class="artbars">
-          <div class="artbar"><span>Clarity</span><b>B+</b><i style="--w:85%;--c:var(--good)"></i></div>
-          <div class="artbar"><span>Message-market fit</span><b>C</b><i style="--w:58%;--c:var(--mid)"></i></div>
-          <div class="artbar"><span>Value proposition</span><b>C+</b><i style="--w:63%;--c:var(--mid)"></i></div>
-          <div class="artbar"><span>Differentiation</span><b>C-</b><i style="--w:48%;--c:var(--mid)"></i></div>
-          <div class="artbar"><span>Voice &amp; emotion</span><b>B</b><i style="--w:78%;--c:var(--good)"></i></div>
+          <div class="artbar"><i style="--w:72%"></i></div>
+          <div class="artbar"><i style="--w:54%"></i></div>
+          <div class="artbar"><i style="--w:63%"></i></div>
+          <div class="artbar"><i style="--w:44%"></i></div>
+          <div class="artbar"><i style="--w:80%"></i></div>
         </div>
       </div>
     </div>
@@ -322,7 +343,6 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
         </div>
         <div class="shot">
           <image-slot id="shot-copy" data-placeholder="Screenshot of your page"></image-slot>
-          <div class="pin" style="top:24px;left:28px">1</div><div class="pin" style="top:80px;left:240px">2</div><div class="pin" style="top:130px;left:80px">3</div><div class="pin" style="top:164px;left:200px">4</div>
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Copy critique</h3><span class="ln"></span></div>
@@ -385,7 +405,6 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
         </div>
         <div class="shot">
           <image-slot id="shot-cred" data-placeholder="Screenshot of your solution page"></image-slot>
-          <div class="pin" style="top:28px;left:32px">1</div><div class="pin" style="top:110px;left:66px">2</div><div class="pin" style="top:76px;left:210px">3</div><div class="pin" style="top:160px;left:160px">4</div>
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Proof-point audit</h3><span class="ln"></span></div>
@@ -439,7 +458,7 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
     <div>
       <span class="movepill">Genius Move #3</span>
       <div class="movetitle">Conversion</div>
-      <div class="movewhy">Your sole offer is a demo, which misses a big opportunity to capture more buyers with additional conversion opportunities.</div>
+      <div class="movewhy">Most sites give a visitor exactly one way to act, so everyone who is not ready to buy today leaves with nothing. This move looks at how many ways your page lets a buyer move forward.</div>
       <div class="gate">
         <div class="fx ac jb gap12" style="flex-wrap:wrap"><div class="ttl" style="margin:0">Run the landing-page critique</div></div>
         <div class="hr"></div>
@@ -457,7 +476,6 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
         </div>
         <div class="shot">
           <image-slot id="shot-conv" data-placeholder="Screenshot of your landing page"></image-slot>
-          <div class="pin" style="top:30px;left:36px">1</div><div class="pin" style="top:88px;left:160px">2</div><div class="pin" style="top:128px;left:64px">3</div><div class="pin" style="top:162px;left:190px">4</div>
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Conversion critique</h3><span class="ln"></span></div>
@@ -540,9 +558,9 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
     <div class="card roiin">
       <div class="tup">Your numbers</div>
       <label class="flab" for="roi-value">Average customer value</label>
-      <div class="roifield"><span>$</span><input class="field" id="roi-value" type="number" min="0" step="100" value="5000" inputmode="numeric"></div>
+      <div class="roifield"><span>$</span><input class="field" id="roi-value" type="number" min="0" step="100" placeholder="5,000" inputmode="numeric"></div>
       <label class="flab" for="roi-deals" style="margin-top:18px">New customers per month from the site</label>
-      <input class="field" id="roi-deals" type="number" min="0" step="1" value="4" inputmode="numeric">
+      <input class="field" id="roi-deals" type="number" min="0" step="1" placeholder="4" inputmode="numeric">
       <label class="flab" for="roi-lift" style="margin-top:18px">If fixing these issues lifts conversion by <b id="roi-liftv">20%</b></label>
       <input id="roi-lift" type="range" min="5" max="50" step="5" value="20" class="roirange">
       <div class="fnote" style="margin-top:14px">Nothing here is measured from your site. These are your assumptions, multiplied out.</div>
@@ -550,16 +568,16 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
 
     <div class="card roiout">
       <div class="tup">What the site is worth today</div>
-      <div class="roibig" id="roi-now">$20,000<span>/mo</span></div>
-      <div class="roisub" id="roi-nowy">$240,000 per year</div>
+      <div class="roibig" id="roi-now">—</div>
+      <div class="roisub" id="roi-nowy">Fill in your numbers on the left.</div>
 
       <div class="roisplit"></div>
 
       <div class="tup">What the lift is worth</div>
-      <div class="roibig t-good" id="roi-gain">+$4,000<span>/mo</span></div>
-      <div class="roisub" id="roi-gainy">+$48,000 per year</div>
+      <div class="roibig t-good" id="roi-gain">—</div>
+      <div class="roisub" id="roi-gainy">Fill in your numbers on the left.</div>
 
-      <div class="roinote" id="roi-note">That is one extra customer a month.</div>
+      <div class="roinote" id="roi-note">Put in your numbers above and this fills in.</div>
     </div>
   </div>
 

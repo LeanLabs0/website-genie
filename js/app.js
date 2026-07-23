@@ -87,14 +87,6 @@ function displayGrade(grade, pct) {
 // Missing fields fall back to the demo report (window.GENIE_DEMO).
 // ---------------------------------------------------------------------------
 
-// Prototype pin positions (px inside the 340px-wide .shot), used when a
-// finding carries no pin from the engine.
-const DEFAULT_PINS = {
-  copy:        [{ top: 24, left: 28 }, { top: 80, left: 240 }, { top: 130, left: 80 }, { top: 164, left: 200 }],
-  credibility: [{ top: 28, left: 32 }, { top: 110, left: 66 }, { top: 76, left: 210 }, { top: 160, left: 160 }],
-  conversion:  [{ top: 30, left: 36 }, { top: 88, left: 160 }, { top: 128, left: 64 }, { top: 162, left: 190 }]
-};
-
 const SECTION_KEYS = ['copy', 'credibility', 'conversion'];
 
 function deriveGenieView(raw) {
@@ -236,15 +228,12 @@ function buildFinding(f) {
   return card;
 }
 
+// Pins only ever come from engine coordinates now, so the position is always
+// a percentage of the screenshot.
 function buildPin(n, pos) {
   const pin = el('div', 'pin', String(n));
-  if (pos.xPct != null) {
-    pin.style.top = pos.yPct + '%';
-    pin.style.left = pos.xPct + '%';
-  } else {
-    pin.style.top = pos.top + 'px';
-    pin.style.left = pos.left + 'px';
-  }
+  pin.style.top = pos.yPct + '%';
+  pin.style.left = pos.xPct + '%';
   return pin;
 }
 
@@ -292,18 +281,17 @@ function bindText(root, name, value) {
   if (node && value != null) node.textContent = value;
 }
 
-// A rendered report with an unavailable section must NOT keep the prototype's
-// sample markup: the print stylesheet reveals every hidden screen, so stale demo
-// grades would print as if they were the customer's. Hide the sample report (kept
-// in the DOM so a later successful re-scan can restore it) and show an explicit,
-// honest "Not available" panel on screen and in print.
-function renderUnavailableSection(root, key, sec) {
+// Swap a screen's prototype sample markup for an honest panel that keeps the
+// screen's own identity (Genius Move pill + title). The sample report stays in
+// the DOM, hidden, so a later successful scan can bind onto it again.
+// Used for two cases: a section the engine could not grade, and a screen nobody
+// has run a scan for yet.
+function renderEmptyPanel(root, key, headText, noteText, ctaText) {
   const screen = root.querySelector('.screen');
   if (!screen) return;
   const report = screen.querySelector('.report');
   if (report) report.classList.add('genie-off');
 
-  // Keep the screen's heading (the Genius Move pill + title) from the prototype.
   const pill = (report || root).querySelector('.movepill');
   const title = (report || root).querySelector('.movetitle');
   const pillText = pill ? pill.textContent : '';
@@ -312,22 +300,54 @@ function renderUnavailableSection(root, key, sec) {
   let panel = screen.querySelector('[data-unavail-panel]');
   if (!panel) {
     panel = el('div', 'card placeholder');
-    panel.setAttribute('data-unavail-panel', key);
     screen.appendChild(panel);
   }
+  panel.setAttribute('data-unavail-panel', key);
   panel.replaceChildren();
   if (pillText) panel.appendChild(el('span', 'movepill', pillText));
   const t = el('div', 'movetitle', titleText);
   t.style.marginTop = '18px';
   panel.appendChild(t);
-  const head = el('div', 'ttl', 'This section is not available');
+  const head = el('div', 'ttl', headText);
   head.style.marginTop = '14px';
   panel.appendChild(head);
-  const note = el('div', 'hsum', sec && sec.error
-    ? 'We ran into a problem grading this section, so we left it out instead of showing numbers we can’t stand behind.'
-    : 'We couldn’t grade this section, so we left it out instead of showing numbers we can’t stand behind.');
-  note.style.cssText = 'margin:14px auto 0;max-width:48ch';
+  const note = el('div', 'hsum', noteText);
+  note.style.cssText = 'margin:14px auto 0;max-width:50ch';
   panel.appendChild(note);
+  if (ctaText) {
+    const wrap = el('div', null);
+    wrap.style.marginTop = '22px';
+    const btn = el('button', 'btnp', ctaText);
+    btn.type = 'button';
+    btn.dataset.go = 'entry';
+    wrap.appendChild(btn);
+    panel.appendChild(wrap);
+  }
+}
+
+// A rendered report with an unavailable section must NOT keep the prototype's
+// sample markup: stale demo grades would print as if they were the customer's.
+function renderUnavailableSection(root, key, sec) {
+  renderEmptyPanel(root, key, 'This section is not available',
+    sec && sec.error
+      ? 'We ran into a problem grading this section, so we left it out instead of showing numbers we can’t stand behind.'
+      : 'We couldn’t grade this section, so we left it out instead of showing numbers we can’t stand behind.',
+    null);
+}
+
+// No scan has run this session and the sample was not explicitly requested.
+// The step still exists and is still reachable; it just has nothing in it yet.
+// Anything else here would be invented grades about a site we never looked at.
+const AWAITING_KEYS = ['copy', 'credibility', 'conversion', 'conversation'];
+
+function renderAwaitingScan() {
+  AWAITING_KEYS.forEach(key => {
+    const root = document.querySelector('[data-screen="' + key + '"]');
+    if (!root) return;
+    renderEmptyPanel(root, key, 'Run a scan to see this',
+      'Nothing has been graded yet. Put your page URL in on step 0 and the Genie fills this screen in with your own results.',
+      'Enter your URL →');
+  });
 }
 
 // Undo any "Not available" state from an earlier render so a now-available section
@@ -427,23 +447,19 @@ function renderSectionScreen(key, sec) {
       slot.setAttribute('src', sec.shotUrl);
     }
     shot.querySelectorAll('.pin').forEach(p => p.remove());
-    // Pins floating over an empty placeholder read as broken. Only pin when
-    // there is a real screenshot to pin onto.
-    if (!sec.shotUrl) return;
-    const defaults = DEFAULT_PINS[key] || [];
-    sec.findings.forEach((f, i) => {
-      if (f.pin) {
-        // Engine pin: place it only when it targets THIS section's screenshot.
-        // A pin on another page would land on the wrong image, so skip it (the
-        // finding card still carries the number n). A pin with no page is assumed
-        // to belong here, matching the pre-contract behavior.
+    // A pin is an annotation, not decoration. It is drawn only when the engine
+    // gave real coordinates for that finding AND those coordinates belong to the
+    // screenshot this section is showing. No coordinates means no pin: a marker
+    // sitting on the wrong element is worse than no marker at all.
+    // (This must never `return` from the function: everything below still needs
+    // binding when a section has no screenshot.)
+    if (sec.shotUrl) {
+      sec.findings.forEach(f => {
+        if (!f.pin) return;
         if (f.pin.page != null && sec.screenshot != null && f.pin.page !== sec.screenshot) return;
         shot.appendChild(buildPin(f.n, f.pin));
-      } else {
-        const pos = defaults[i];
-        if (pos) shot.appendChild(buildPin(f.n, pos));
-      }
-    });
+      });
+    }
   }
 
   // Copy screen extras: overall performance card + strength/weakness/priority.
@@ -482,6 +498,8 @@ function renderSectionScreen(key, sec) {
 function renderRollup(rollup) {
   const root = document.querySelector('[data-screen="conversation"]');
   if (!root || !rollup || !rollup.available) return;
+  // Undo the "run a scan first" panel now that there is a real rollup.
+  restoreSection(root);
   const dial = root.querySelector('[data-dial="overall"]');
   if (dial) setDial(dial, rollup.grade, rollup.pct);
   const barsEl = root.querySelector('[data-bars]');
@@ -764,6 +782,7 @@ function showReport(report) {
   state.url = view.url;
   state.overallGrade = view.rollup && view.rollup.available ? view.rollup.grade : null;
   state.hasReport = true;
+  setReportFlag();
   renderReport(view);
   updateToolLinks(view.url);
   const progress = document.getElementById('scan-progress');
@@ -827,10 +846,10 @@ function render() {
     else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
     else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
     else {
-      btn.classList.add('locked');
-      // After a real report every remaining step is viewable; "Locked" is the
-      // prototype's relative-position wording and reads wrong then.
-      st = state.mode === 'ready' ? 'View' : 'Locked';
+      // Every step stays reachable whenever a scan is not in flight, so calling
+      // it "Locked" would be a lie about a button that works. Base styling (no
+      // extra class) reads as "available, not current".
+      st = 'View';
     }
     btn.querySelector('.sst').textContent = st;
   });
@@ -1024,6 +1043,23 @@ if (gateBtn) {
 
 const PARAMS = new URLSearchParams(location.search);
 
+// The prototype's sample report is real-looking fiction. It may ONLY render when
+// it was explicitly asked for (?demo=1 / ?mock=1). On any other visit a deep link
+// like #copy or #cost must land on the entry screen, never on invented grades and
+// dollar figures about a business we never scanned.
+const DEMO_ALLOWED = PARAMS.get('demo') === '1' || PARAMS.get('mock') === '1';
+
+// True when the page is allowed to show report screens at all: a real scan ran
+// this session, or the sample was explicitly requested.
+function reportUnlocked() {
+  return state.hasReport || DEMO_ALLOWED;
+}
+
+// Print and deep-link behaviour both hang off this flag.
+function setReportFlag() {
+  document.body.classList.toggle('has-report', reportUnlocked());
+}
+
 // Modes:
 //   (bare) / ?demo=1  untouched prototype sample data
 //   ?mock=1           demo report rendered through the full derive/render pipeline
@@ -1032,6 +1068,7 @@ const PARAMS = new URLSearchParams(location.search);
 //   ?r=<id>           dormant hook for shareable reports, pending backend
 //                     GET /report/{id}; ignored for now.
 (function boot() {
+  setReportFlag();
   if (PARAMS.get('demo') === '1') return;
   if (PARAMS.get('mock') === '1' && window.GENIE_DEMO) {
     showReport(window.GENIE_DEMO);
@@ -1048,6 +1085,8 @@ const PARAMS = new URLSearchParams(location.search);
     const emailInput = document.getElementById('gate-email');
     if (emailInput) emailInput.value = lead;
   }
+  // Still nothing real to show: blank the sample out of every report screen.
+  if (!state.hasReport) renderAwaitingScan();
 })();
 
 const h = location.hash.slice(1);
@@ -1078,18 +1117,25 @@ function renderRoi() {
   if (liftv) liftv.textContent = lift + '%';
   const setText = (id, t) => { const n = document.getElementById(id); if (n) n.textContent = t; };
   const nowEl = document.getElementById('roi-now');
-  if (nowEl) nowEl.innerHTML = '';
-  if (nowEl) { nowEl.append(document.createTextNode(money(now)), el('span', null, '/mo')); }
-  setText('roi-nowy', money(now * 12) + ' per year');
   const gainEl = document.getElementById('roi-gain');
+  // Nothing here is measured, so nothing is shown until the visitor supplies the
+  // inputs. A pre-filled "$20,000/mo" reads as a finding about their business.
+  if (!value || !deals) {
+    if (nowEl) nowEl.replaceChildren(document.createTextNode('—'));
+    if (gainEl) gainEl.replaceChildren(document.createTextNode('—'));
+    setText('roi-nowy', 'Fill in your numbers on the left.');
+    setText('roi-gainy', 'Fill in your numbers on the left.');
+    setText('roi-note', 'Put in your numbers above and this fills in.');
+    return;
+  }
+  if (nowEl) { nowEl.replaceChildren(document.createTextNode(money(now)), el('span', null, '/mo')); }
+  setText('roi-nowy', money(now * 12) + ' per year');
   if (gainEl) { gainEl.replaceChildren(document.createTextNode('+' + money(gain)), el('span', null, '/mo')); }
   setText('roi-gainy', '+' + money(gain * 12) + ' per year');
 
   // Say it in a unit a human feels, not just a number.
   let note;
-  if (!value || !deals) {
-    note = 'Put in your numbers above and this fills in.';
-  } else {
+  {
     const extra = gain / value;
     if (extra >= 1) {
       const n = Math.round(extra * 10) / 10;

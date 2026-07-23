@@ -22,6 +22,17 @@ The Website Genie grade report: the funnel where a prospect enters their solutio
 
 Planned: `?r=<report_id>` shareable links. The hook is dormant in `js/app.js` until the backend ships `report_id` plus `GET /report/{id}`.
 
+## Two-scan flow
+
+The report is produced by **two** scans, matching the original grader design where the landing-page critique was a separate step:
+
+1. **Scan 1 (entry URL)** grades **Copy + Credibility** only. The request carries `scope: "main"`. The engine skips the Conversion agent, so that section ships with `skipped: true` and the rollup covers 2 pages (~40s).
+2. **Scan 2 (Conversion screen)** runs only when the visitor enters their offer/landing URL into the email-gate card on step 3. The request carries `scope: "conversion"` and grades only that URL's Conversion critique (~30s). The frontend merges the result into the stored report and recomputes the rollup to 3 pages.
+
+Until scan 2 runs, the Conversion screen shows the gate card with a short teaser (not a report), rail step 3 reads "Enter your page URL", and the Conversation rollup covers the 2 graded pages. `scope: "full"` (all three at once) exists for internal/testing use.
+
+A `skipped: true` section is distinct from a failed one: it carries no `error` and is not counted as a failure in the rollup.
+
 ## Report contract
 
 Single source of truth on the backend: `factor8_app` `src/factor8/website_genie/api_schemas.py`. The frontend's executable copy of the same shape, populated with the prototype's sample values, is `js/demo-data.js` (`window.GENIE_DEMO`). Field names must match exactly on both sides.
@@ -54,10 +65,10 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 
 ## Interaction spec
 
-- **Step rail** (sticky, under the top bar): each step shows one of 4 states: `done` (green check number), `active` (white number, highlighted), `next` (outlined number, "Up next"), `locked` (45% opacity). In demo/ready modes all steps navigate. While scanning, steps 1-6 lock and their status line shows the live phase text from the engine ("Copy graded: B-"). Failed report sections stay locked with "Not available".
+- **Step rail** (sticky, under the top bar): each step shows one of 4 states: `done` (green check number), `active` (white number, highlighted), `next` (outlined number, "Up next"), `locked` (45% opacity). In demo/ready modes all steps navigate; once a real report is rendered, remaining steps read "View" (not "Locked", which is only the prototype's relative-position wording). While scanning, only the next upcoming step shows the live phase text ("Copy graded: B-"); the others read "Locked". The Conversion step reads "Enter your page URL" until scan 2 runs. Failed report sections stay locked with "Not available".
 - **Entry form**: URL is normalized (scheme added if missing) and validated client-side before the scan starts.
 - **Scan errors**: mapped to plain messages (429 high demand, 502 unreachable URL, 422 bad URL, timeout, network) in the `#scan-error` card with a retry button.
-- **Email gate** (Conversion screen): pure lead capture in v1, locks nothing. Submits to the engine's lead endpoint (non-blocking, optimistic confirmation) and rides along on the next scan request. Whether the gate should lock pages 3-6 or just the PDF is an open product call.
+- **Email gate** (Conversion screen): captures the lead AND triggers scan 2 (the Conversion critique of the URL entered here). Submits to the engine's lead endpoint (non-blocking), then runs a `scope: "conversion"` scan with inline progress on the gate button, merges the result, and re-renders the Conversion screen and the rollup.
 - **Funnel breadcrumb** (top bar): Opt In > Genie > Accelerator > Blueprint. Only "Opt In" navigates. Accelerator/Blueprint are future funnel stages, not built.
 - **Teaser cards** at the bottom of each report screen advance to the next move.
 - Navigation scrolls to top and updates the URL hash.

@@ -119,7 +119,8 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
   // Missing section on a live report => unavailable (empty section), never demo data.
   // Demo/mock fall back to the demo section so ?mock=1 stays identical to the demo.
   sec = sec || (isDemo ? demoSec : {});
-  const available = !sec.error && (sec.grade != null || (sec.subscores || []).length > 0);
+  const skipped = !!sec.skipped;
+  const available = !skipped && !sec.error && (sec.grade != null || (sec.subscores || []).length > 0);
 
   const bars = (sec.subscores || []).map(s => ({
     label: s.label,
@@ -153,6 +154,7 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
 
   const derived = {
     available: available,
+    skipped: skipped,
     error: sec.error || null,
     grade: displayGrade(sec.grade, sec.pct),
     pct: clampPct(sec.pct, sec.grade),
@@ -324,11 +326,68 @@ function restoreSection(root) {
   if (report) report.classList.remove('genie-off');
 }
 
+// Conversion awaiting its own scan: hide the sample report but keep the gate
+// card front and center. The gate node is MOVED into the panel (listeners
+// survive a move) and a marker comment holds its original spot for restore.
+function renderGateSection(root) {
+  const screen = root.querySelector('.screen');
+  if (!screen) return;
+  const report = screen.querySelector('.report');
+  if (report) report.classList.add('genie-off');
+
+  let panel = screen.querySelector('[data-gate-panel]');
+  if (!panel) {
+    panel = el('div', 'card placeholder');
+    panel.setAttribute('data-gate-panel', '1');
+    panel.appendChild(el('span', 'movepill', 'GENIUS MOVE #3'));
+    const t = el('div', 'movetitle', 'Conversion');
+    t.style.marginTop = '18px';
+    panel.appendChild(t);
+    const teaser = el('div', 'hsum',
+      'This critique runs on the page where you actually convert visitors. ' +
+      'Enter your offer or landing page URL below and the Genie grades it in about 30 seconds.');
+    teaser.style.cssText = 'margin:14px auto 0;max-width:52ch';
+    panel.appendChild(teaser);
+    const gate = (report || screen).querySelector('.gate');
+    if (gate) {
+      const marker = document.createComment('gate-home');
+      gate.parentNode.insertBefore(marker, gate);
+      gate.dataset.moved = '1';
+      const wrap = el('div', null);
+      wrap.style.cssText = 'margin-top:22px;text-align:left';
+      wrap.appendChild(gate);
+      panel.appendChild(wrap);
+    }
+    screen.appendChild(panel);
+  }
+}
+
+function restoreGateSection(root) {
+  const panel = root.querySelector('[data-gate-panel]');
+  if (!panel) return;
+  const gate = panel.querySelector('.gate');
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+  let marker = null;
+  while (walker.nextNode()) {
+    if (walker.currentNode.nodeValue === 'gate-home') { marker = walker.currentNode; break; }
+  }
+  if (gate && marker && marker.parentNode) {
+    marker.parentNode.insertBefore(gate, marker);
+    marker.remove();
+    delete gate.dataset.moved;
+  }
+  panel.remove();
+}
+
 function renderSectionScreen(key, sec) {
   const root = document.querySelector('[data-screen="' + key + '"]');
   if (!root || !sec) return;
+  if (sec.skipped && key === 'conversion') { renderGateSection(root); return; }
+  if (sec.skipped) { renderUnavailableSection(root, key, sec); return; }
   if (!sec.available) { renderUnavailableSection(root, key, sec); return; }
-  // Section is available: undo any "Not available" panel left by an earlier render.
+  // Section is available: undo any "Not available" or gate panel left by an
+  // earlier render.
+  restoreGateSection(root);
   restoreSection(root);
 
   const dial = root.querySelector('[data-dial]');
@@ -465,16 +524,18 @@ function scanError(kind) {
 // POST + incremental SSE parse (EventSource is GET-only, so we read the
 // streamed body by hand). Events: {phase, pct, message}; final frame is
 // {phase:"complete", pct:100, result}; failure is {phase:"error", status, detail}.
-async function runScan(url, email, onPhase) {
+async function runScan(url, email, onPhase, scope) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
   try {
     let res;
     try {
+      const body = { url: url, scope: scope || 'main' };
+      if (email) body.email = email;
       res = await fetch(API_BASE, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': API_KEY },
-        body: JSON.stringify(email ? { url: url, email: email } : { url: url }),
+        body: JSON.stringify(body),
         signal: controller.signal
       });
     } catch (err) {
@@ -522,29 +583,51 @@ async function runScan(url, email, onPhase) {
 
 // Stubbed scan for UX testing without the engine: ?stub=1 succeeds with the
 // demo report, ?stub=fail exercises the error path.
-function stubScan(url, email, onPhase) {
+function stubScan(url, email, onPhase, scope) {
   const fail = PARAMS.get('stub') === 'fail';
-  const phases = [
-    { phase: 'fetching', pct: 5, message: 'Fetching your pages…' },
-    { phase: 'capturing', pct: 20, message: 'Capturing screenshots…' },
-    { phase: 'grading', pct: 35, message: 'Grading your site…' },
-    { phase: 'graded', pct: 55, message: 'Copy graded: B-' },
-    { phase: 'graded', pct: 70, message: 'Credibility graded: C' },
-    { phase: 'graded', pct: 85, message: 'Conversion graded: C-' },
-    { phase: 'compiling', pct: 92, message: 'Compiling your report…' }
-  ];
+  const conversionOnly = scope === 'conversion';
+  const phases = conversionOnly
+    ? [
+        { phase: 'fetching', pct: 5, message: 'Fetching your page…' },
+        { phase: 'capturing', pct: 20, message: 'Capturing screenshots…' },
+        { phase: 'grading', pct: 35, message: 'Grading your page…' },
+        { phase: 'graded', pct: 55, message: 'Conversion graded: C-' },
+        { phase: 'compiling', pct: 92, message: 'Compiling your report…' }
+      ]
+    : [
+        { phase: 'fetching', pct: 5, message: 'Fetching your pages…' },
+        { phase: 'capturing', pct: 20, message: 'Capturing screenshots…' },
+        { phase: 'grading', pct: 35, message: 'Grading your site…' },
+        { phase: 'graded', pct: 55, message: 'Copy graded: B-' },
+        { phase: 'graded', pct: 70, message: 'Credibility graded: C' },
+        { phase: 'compiling', pct: 92, message: 'Compiling your report…' }
+      ];
   return new Promise((resolve, reject) => {
     let i = 0;
     const tick = () => {
       if (i < phases.length) {
         if (onPhase) onPhase(phases[i]);
         i += 1;
-        setTimeout(tick, 700);
+        setTimeout(tick, 500);
       } else if (fail) {
         reject(scanError(502));
       } else {
         const report = JSON.parse(JSON.stringify(window.GENIE_DEMO));
         report.url = url;
+        if (conversionOnly) {
+          report.copy.skipped = true;
+          report.credibility.skipped = true;
+        } else {
+          report.conversion.skipped = true;
+          report.conversion.grade = null;
+          report.conversion.pct = null;
+          const pages = (report.rollup.pages || []).filter(p => p.key !== 'conversion');
+          report.rollup.pages = (report.rollup.pages || []).map(p =>
+            p.key === 'conversion' ? { key: p.key, label: p.label, grade: null, pct: null } : p);
+          const pcts = pages.map(p => p.pct);
+          report.rollup.pct = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+          report.rollup.grade = letterFromPct(report.rollup.pct);
+        }
         resolve(report);
       }
     };
@@ -569,14 +652,19 @@ function postLead(email, url, overallGrade) {
 
 const state = {
   mode: 'demo',                    // demo | scanning | ready | error
-  phaseText: '',                   // live phase text shown on locked rail steps
+  phaseText: '',                   // live phase text shown on the next rail step
   unlockedThrough: 'conversation', // last step reachable from the rail
   failed: {},                      // section key -> true (partial report)
+  skipped: {},                     // section key -> true (awaiting its own scan, e.g. conversion gate)
   url: null,
   overallGrade: null,
   errorKind: null,                 // kind of the last scan error (429/502/422/timeout/...)
   hasReport: false                 // a real report has rendered at least once this session
 };
+
+// The raw report of the last successful scan; scan 2 (conversion gate) merges
+// into this and re-renders.
+let lastReport = null;
 
 function setProgress(pct, message) {
   if (message) state.phaseText = message;
@@ -638,13 +726,18 @@ function startScan(url) {
 }
 
 function showReport(report) {
+  lastReport = report;
   const view = deriveGenieView(report);
   state.mode = 'ready';
   state.phaseText = '';
   setCtaScanning(false);
   state.unlockedThrough = 'conversation';
   state.failed = {};
-  SECTION_KEYS.forEach(k => { if (!view.sections[k].available) state.failed[k] = true; });
+  state.skipped = {};
+  SECTION_KEYS.forEach(k => {
+    if (view.sections[k].skipped) state.skipped[k] = true;
+    else if (!view.sections[k].available) state.failed[k] = true;
+  });
   state.url = view.url;
   state.overallGrade = view.rollup && view.rollup.available ? view.rollup.grade : null;
   state.hasReport = true;
@@ -684,6 +777,12 @@ function isLockedStep(k) {
 
 function render() {
   const cur = ORDER.indexOf(move);
+  // During a scan the live phase text shows on ONE step (the first locked
+  // one), not spammed across the whole rail.
+  let firstLocked = null;
+  if (state.mode === 'scanning') {
+    firstLocked = ORDER.find(k => isLockedStep(k)) || null;
+  }
   document.querySelectorAll('.step').forEach(btn => {
     const i = ORDER.indexOf(btn.dataset.step);
     const k = btn.dataset.step;
@@ -691,14 +790,22 @@ function render() {
     let st;
     if (state.mode === 'scanning' && isLockedStep(k)) {
       btn.classList.add('locked');
-      st = state.phaseText || 'Scanning…';
+      st = k === firstLocked ? (state.phaseText || 'Scanning…') : 'Locked';
+    } else if (state.skipped[k]) {
+      btn.classList.add('next');
+      st = 'Enter your page URL';
     } else if (state.failed[k]) {
       btn.classList.add('locked');
       st = 'Not available';
     } else if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
     else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
     else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
-    else { btn.classList.add('locked'); st = 'Locked'; }
+    else {
+      btn.classList.add('locked');
+      // After a real report every remaining step is viewable; "Locked" is the
+      // prototype's relative-position wording and reads wrong then.
+      st = state.mode === 'ready' ? 'View' : 'Locked';
+    }
     btn.querySelector('.sst').textContent = st;
   });
   document.querySelectorAll('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== move; });
@@ -751,6 +858,51 @@ if (retryBtn) {
   });
 }
 
+// Merge the conversion-scan response into the last report and recompute the
+// rollup client-side (same letter bands as the engine's grading.py).
+function mergeConversionScan(resp) {
+  const base = lastReport ? JSON.parse(JSON.stringify(lastReport)) : resp;
+  if (base !== resp) {
+    base.conversion = resp.conversion;
+    if (resp.screenshots) {
+      base.screenshots = Object.assign({}, base.screenshots || {}, resp.screenshots);
+    }
+    const pcts = SECTION_KEYS
+      .map(k => base[k] && !base[k].skipped ? base[k].pct : null)
+      .filter(p => typeof p === 'number');
+    if (pcts.length) {
+      const overall = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+      base.rollup = base.rollup || {};
+      base.rollup.pct = overall;
+      base.rollup.grade = letterFromPct(overall);
+      base.rollup.pages = SECTION_KEYS.map(k => ({
+        key: k,
+        label: k.charAt(0).toUpperCase() + k.slice(1),
+        grade: base[k] && !base[k].skipped ? base[k].grade : null,
+        pct: base[k] && !base[k].skipped ? base[k].pct : null
+      }));
+      base.rollup.summary = (base.brand || 'Your site') + ' grades ' + base.rollup.grade +
+        ' overall across ' + pcts.length + ' graded page' + (pcts.length === 1 ? '' : 's') + '.';
+      const convFixes = ((resp.rollup || {}).priority_fixes || []);
+      if (convFixes.length) {
+        const fixes = ((base.rollup.priority_fixes || []).filter(f => f)).slice(0, 2);
+        fixes.push(convFixes[0]);
+        base.rollup.priority_fixes = fixes.map((f, i) => ({ rank: i + 1, title: f.title, detail: f.detail }));
+      }
+    }
+  }
+  return base;
+}
+
+function setGateScanning(on, message) {
+  const btn = document.getElementById('gate-submit');
+  if (btn) {
+    btn.disabled = on;
+    if (on) { btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = message || 'Grading your page…'; }
+    else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
+  }
+}
+
 const gateBtn = document.getElementById('gate-submit');
 if (gateBtn) {
   gateBtn.addEventListener('click', () => {
@@ -761,11 +913,30 @@ if (gateBtn) {
       return;
     }
     const urlInput = document.getElementById('gate-url');
-    const url = normalizeUrl(urlInput ? urlInput.value : '') || state.url || '';
+    const url = normalizeUrl(urlInput ? urlInput.value : '');
+    if (!url) {
+      if (urlInput) urlInput.focus();
+      return;
+    }
     postLead(email, url, state.overallGrade);
     try { sessionStorage.setItem('genie:lead', email); } catch (e) {}
-    gateBtn.textContent = 'Got it! Your report is on its way.';
-    gateBtn.disabled = true;
+
+    // Scan 2: the conversion critique runs on the URL entered HERE.
+    setGateScanning(true);
+    const impl = PARAMS.get('stub') ? stubScan : runScan;
+    impl(url, email, evt => setGateScanning(true, evt.message), 'conversion')
+      .then(resp => {
+        const merged = mergeConversionScan(resp);
+        try { sessionStorage.setItem('genie:report', JSON.stringify(merged)); } catch (e) {}
+        setGateScanning(false);
+        showReport(merged);
+        go('conversion');
+      })
+      .catch(err => {
+        setGateScanning(false);
+        const btn = document.getElementById('gate-submit');
+        if (btn) btn.textContent = (err && err.genie ? err.message : 'Scan failed.') + ' Try again';
+      });
   });
 }
 

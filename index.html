@@ -307,6 +307,8 @@ section[data-screen]{position:relative;z-index:1}
 .roifield{display:flex;align-items:center;gap:8px}
 .roifield span{font:600 18px/1 var(--font-heading);color:#949494}
 .roiin .field{margin-top:6px}
+.roiin .tup,.roiout .tup{margin-bottom:16px;display:block}
+.roigrade{margin-top:16px;font:500 14px/1.5 var(--font-body);color:#B0B0B0;background:#1C1C1C;border-radius:8px;padding:12px 14px;max-width:64ch}
 /* The only control on the Cost screen. It was a 16px tap target. */
 .roirange{width:100%;margin-top:6px;accent-color:#00D492;height:44px;cursor:pointer}
 .roibig{font:600 40px/1.1 var(--font-heading);color:#fff;margin-top:10px}
@@ -636,9 +638,9 @@ section[data-screen]{position:relative;z-index:1}
       <div class="f1">
         <div class="tup">Up next · Genius Move #5</div>
         <div class="ttl">Cost &amp; ROI of fixing your site</div>
-        <div class="tone">See exactly what fixing your website is worth, in dollars.</div>
+        <div class="tone">Put in your own numbers and we work out what the gap is costing you.</div>
       </div>
-      <button class="btnp" data-go="cost">Get Your Real ROI Here →</button>
+      <button class="btnp" data-go="cost">Work Out Your Numbers →</button>
     </div>
   </div>
 </div>
@@ -650,6 +652,7 @@ section[data-screen]{position:relative;z-index:1}
   <span class="movepill">Genius Move #5</span>
   <h2 class="movetitle">Cost &amp; ROI</h2>
   <div class="movewhy">A grade only matters if it costs you money. Put in your own numbers and see what the gap is worth. We do the arithmetic, you own the assumptions.</div>
+  <div class="roigrade" id="roi-grade" hidden></div>
 
   <div class="roiwrap">
     <div class="card roiin">
@@ -658,7 +661,7 @@ section[data-screen]{position:relative;z-index:1}
       <div class="roifield"><span>$</span><input class="field" id="roi-value" type="number" min="0" step="100" placeholder="5,000" inputmode="numeric"></div>
       <label class="flab" for="roi-deals" style="margin-top:18px">New customers per month from the site</label>
       <input class="field" id="roi-deals" type="number" min="0" step="1" placeholder="4" inputmode="numeric">
-      <label class="flab" for="roi-lift" style="margin-top:18px">If fixing these issues lifts conversion by <b id="roi-liftv">20%</b></label>
+      <label class="flab" for="roi-lift" style="margin-top:18px">If fixing these issues lifts conversion by <b id="roi-liftv">20%</b> (your assumption, not our measurement)</label>
       <input id="roi-lift" type="range" min="5" max="50" step="5" value="20" class="roirange">
       <div class="fnote" style="margin-top:14px">Nothing here is measured from your site. These are your assumptions, multiplied out.</div>
     </div>

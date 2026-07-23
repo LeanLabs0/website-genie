@@ -1002,6 +1002,7 @@ const state = {
   skipped: {},                     // section key -> true (awaiting its own scan, e.g. conversion gate)
   url: null,
   overallGrade: null,
+  overallPct: null,
   errorKind: null,                 // kind of the last scan error (429/502/422/timeout/...)
   hasReport: false,                // a real report has rendered at least once this session
   gateDoneUrl: null                // URL graded by scan 2, once it has succeeded
@@ -1131,9 +1132,11 @@ function showReport(report) {
   });
   state.url = view.url;
   state.overallGrade = view.rollup && view.rollup.available ? view.rollup.grade : null;
+  state.overallPct = view.rollup && view.rollup.available ? view.rollup.pct : null;
   state.hasReport = true;
   setReportFlag();
   renderReport(view);
+  renderRoiGrade();
   updateToolLinks(view.url);
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
@@ -1585,6 +1588,22 @@ function money(n) {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
+// The grade is not an input to the arithmetic, so an A site and an F site get
+// identical dollars out of it. It is tied to the scan by reference instead:
+// the visitor's real overall grade is printed here, and the lift is named as
+// their assumption rather than our finding. Hidden entirely until a scan runs,
+// because there is no grade to name yet.
+function renderRoiGrade() {
+  const node = document.getElementById('roi-grade');
+  if (!node) return;
+  const grade = state.overallGrade;
+  const pct = state.overallPct;
+  if (!state.hasReport || !grade) { node.hidden = true; node.textContent = ''; return; }
+  node.hidden = false;
+  node.textContent = 'Your site graded ' + grade + (pct != null ? ' · ' + pct + '/100' : '') +
+    '. That grade is not part of the sum below: the lift is your assumption, not something we measured.';
+}
+
 function renderRoi() {
   const vEl = document.getElementById('roi-value');
   const dEl = document.getElementById('roi-deals');
@@ -1636,3 +1655,4 @@ function renderRoi() {
   if (n) n.addEventListener('input', renderRoi);
 });
 renderRoi();
+renderRoiGrade();

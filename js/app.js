@@ -1,5 +1,30 @@
 // Website Genie app logic (classic script, no build, no modules).
 
+// ---------------------------------------------------------------------------
+// Where every "book a call" button goes.
+// PLACEHOLDER: this is the Lean Labs contact page, standing in until Kevin's
+// real calendar link exists. Change this ONE line and every booking CTA on the
+// page follows: the top bar, the three report sidebars, and the Conversation
+// screen. The same URL is also hardcoded on the <a> tags so the buttons still
+// work if this script fails to load.
+// ---------------------------------------------------------------------------
+const BOOKING_URL = 'https://www.lean-labs.com/contact';
+
+function wireBookingLinks() {
+  document.querySelectorAll('[data-book]').forEach(a => {
+    a.href = BOOKING_URL;
+    a.target = '_blank';
+    a.rel = 'noopener';
+  });
+}
+wireBookingLinks();
+
+// "Print / save the full report" does exactly that: the print stylesheet lays
+// the report out one screen per page. No PDF is generated or emailed, so the
+// button no longer claims to.
+const printBtn = document.getElementById('print-report');
+if (printBtn) printBtn.addEventListener('click', () => window.print());
+
 // image-slot: lightweight stand-in for the design-canvas component.
 // Fills its positioned parent; shows the placeholder label until a real image src is set.
 // Reacts to a late `src` set via observedAttributes (the original element only read
@@ -442,6 +467,9 @@ function renderSectionScreen(key, sec) {
   const shot = root.querySelector('.shot');
   if (shot) {
     const slot = shot.querySelector('image-slot');
+    // No screenshot means no frame. A grey box labelled "Screenshot of your
+    // page" in a finished report reads as something that failed to load.
+    shot.hidden = !sec.shotUrl;
     if (slot && sec.shotUrl) {
       slot.dataset.fit = 'top';
       slot.setAttribute('src', sec.shotUrl);

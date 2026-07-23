@@ -1202,6 +1202,20 @@ function isLockedStep(k) {
   return false;
 }
 
+// Steps where nothing is graded. Code says "We do not score this part" and
+// Cost & ROI says "Fill in your numbers on the left": walking past either one
+// finishes nothing, so neither may ever collect a green "Complete" check.
+const UNGRADED_STEPS = { code: 'Tools to run', cost: 'Your numbers' };
+
+// "Complete" means work actually finished here, not that you scrolled past it.
+function stepDone(k) {
+  if (UNGRADED_STEPS[k]) return false;
+  if (!state.hasReport) return false;          // nothing has been graded at all
+  if (k === 'entry') return true;              // a scan ran, so the URL step is done
+  if (state.failed[k] || state.skipped[k]) return false;
+  return true;
+}
+
 function render() {
   const cur = ORDER.indexOf(move);
   // During a scan the live phase text shows on ONE step (the first locked
@@ -1224,9 +1238,15 @@ function render() {
     } else if (state.failed[k]) {
       btn.classList.add('locked');
       st = 'Not available';
-    } else if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
-    else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
+    } else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
+    else if (UNGRADED_STEPS[k]) {
+      // Honest label instead of "Complete". Keeps the "up next" affordance.
+      if (i === cur + 1) btn.classList.add('next');
+      st = UNGRADED_STEPS[k];
+    }
+    else if (i < cur && stepDone(k)) { btn.classList.add('done'); st = 'Complete'; }
     else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
+    else if (i < cur && k === 'entry') { st = 'Start here'; }
     else {
       // Every step stays reachable whenever a scan is not in flight, so calling
       // it "Locked" would be a lie about a button that works. Base styling (no
@@ -1236,10 +1256,11 @@ function render() {
     btn.querySelector('.sst').textContent = st;
   });
   document.querySelectorAll('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== move; });
-  // The entry screen carries no step rail in the design; it appears once the
-  // visitor is inside the report.
+  // A fresh visitor gets the clean entry screen with no rail, as designed.
+  // Once a report exists, hiding the rail on step 0 left the only route back
+  // to it as the browser back button: the screen became a dead end.
   const rail = document.querySelector('.railwrap');
-  if (rail) rail.hidden = move === 'entry';
+  if (rail) rail.hidden = move === 'entry' && !reportUnlocked();
   syncStickyOffsets();
   scrollActiveStepIntoView();
   syncHScroll();

@@ -828,6 +828,10 @@ function render() {
     btn.querySelector('.sst').textContent = st;
   });
   document.querySelectorAll('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== move; });
+  // The entry screen carries no step rail in the design; it appears once the
+  // visitor is inside the report.
+  const rail = document.querySelector('.railwrap');
+  if (rail) rail.hidden = move === 'entry';
 }
 
 function go(k) {

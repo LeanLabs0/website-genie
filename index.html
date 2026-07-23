@@ -96,7 +96,9 @@ h3{margin:0}
 /* The screenshot 404'd after all the retries: collapse the frame rather than
    leave an empty grey box in a finished report. */
 .shot.noshot{display:none}
-.pin{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;color:#0D0D0D;font:700 12px/1 var(--font-heading);display:flex;align-items:center;justify-content:center;z-index:5;pointer-events:none}
+/* Pin styles removed with the pins. The engine's coordinates are percentages
+   of a full-page capture and this frame shows the top ~5% of it, so every
+   marker landed in the nav. See the note in js/app.js. */
 .sectlab{display:flex;align-items:center;gap:12px;margin:40px 2px 16px}
 .sectlab .n{font:600 11px/1 var(--font-heading);letter-spacing:.15em;color:#757575;text-transform:uppercase}
 .sectlab h3{font:600 16px/1 var(--font-heading);color:#fff}
@@ -588,7 +590,7 @@ section[data-screen]{position:relative;z-index:1}
       </div>
       <div id="offer-evidence">
         <div class="offerev">
-          <div class="oevh">What we found, and where</div>
+          <div class="oevh">What we found</div>
           <div class="oevrow"><span class="oevl">Demo call</span><span class="oevd">Primary hero CTA; demo buttons repeat down the page.</span></div>
         </div>
       </div>

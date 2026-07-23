@@ -465,14 +465,23 @@ function buildFinding(f) {
   return card;
 }
 
-// Pins only ever come from engine coordinates now, so the position is always
-// a percentage of the screenshot.
-function buildPin(n, pos) {
-  const pin = el('div', 'pin', String(n));
-  pin.style.top = pos.yPct + '%';
-  pin.style.left = pos.xPct + '%';
-  return pin;
-}
+// ---------------------------------------------------------------------------
+// Pins are gone, and here is why they are not coming back in this frame.
+//
+// The engine's x_pct/y_pct are percentages of the FULL-PAGE capture, which runs
+// up to 15,816px tall. They were applied as CSS percentages of the .shot frame,
+// which is 340x200 and shows the image with object-fit:cover + object-position:
+// top. Two things break at once: the coordinate space is wrong (top: 9.1% of
+// 200px is 18px, not 9.1% of the page), and the frame only shows the top ~5% of
+// a tall page anyway, so most findings are not on screen at all. Rendered
+// markup was top 9.1%, 3.3%, 13.1%, 2.2% and every left at 50%: four markers
+// stacked inside the site's nav, two of them overlapping, pointing at things
+// they were not about.
+//
+// Correct placement needs a per-finding crop, which is a different screenshot
+// contract, so the honest move is no markers and no "and where" promise. The
+// findings still say where they live in words. See README "Open items".
+// ---------------------------------------------------------------------------
 
 function buildClaimRow(row) {
   const tr = document.createElement('tr');
@@ -495,7 +504,9 @@ function buildOfferEvidence(offers) {
   const rows = offers.filter(o => o.present && o.evidence);
   if (!rows.length) return null;
   const wrap = el('div', 'offerev');
-  wrap.appendChild(el('div', 'oevh', 'What we found, and where'));
+  // "and where" promised a location we no longer point at. The evidence lines
+  // below still say where each offer lives, in words.
+  wrap.appendChild(el('div', 'oevh', 'What we found'));
   rows.forEach(o => {
     const row = el('div', 'oevrow');
     row.append(el('span', 'oevl', o.label), el('span', 'oevd', o.evidence));
@@ -711,20 +722,10 @@ function renderSectionScreen(key, sec) {
       slot.dataset.fit = 'top';
       slot.setAttribute('src', sec.shotUrl);
     }
+    // No pins. A marker sitting on the wrong element is worse than no marker
+    // at all, and in this frame every one of them was wrong (see the note above
+    // buildPin's old home). Strip any left in the static markup.
     shot.querySelectorAll('.pin').forEach(p => p.remove());
-    // A pin is an annotation, not decoration. It is drawn only when the engine
-    // gave real coordinates for that finding AND those coordinates belong to the
-    // screenshot this section is showing. No coordinates means no pin: a marker
-    // sitting on the wrong element is worse than no marker at all.
-    // (This must never `return` from the function: everything below still needs
-    // binding when a section has no screenshot.)
-    if (sec.shotUrl) {
-      sec.findings.forEach(f => {
-        if (!f.pin) return;
-        if (f.pin.page != null && sec.screenshot != null && f.pin.page !== sec.screenshot) return;
-        shot.appendChild(buildPin(f.n, f.pin));
-      });
-    }
   }
 
   // Copy screen extras: overall performance card + strength/weakness/priority.

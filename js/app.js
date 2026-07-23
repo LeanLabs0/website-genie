@@ -562,9 +562,28 @@ function renderRollup(rollup) {
 function renderReport(view) {
   SECTION_KEYS.forEach(key => renderSectionScreen(key, view.sections[key]));
   renderRollup(view.rollup);
-  // Prefill the email-gate URL field with the scanned URL.
-  const gateUrl = document.getElementById('gate-url');
-  if (gateUrl && view.url) gateUrl.value = view.url;
+  // The gate URL field is deliberately NOT prefilled with the page we already
+  // scanned. Prefilling made the second scan require no new information, which
+  // exposed the form as a pure email wall: the whole point is a DIFFERENT page,
+  // the one where visitors actually convert.
+  if (state.gateDoneUrl) renderGateConfirmation(state.gateDoneUrl);
+}
+
+// After the conversion scan succeeds the gate has done its job. Leaving the
+// form on screen (with the URL field reset) left the visitor unable to tell
+// whether anything happened.
+function renderGateConfirmation(url) {
+  const gate = document.querySelector('[data-screen="conversion"] .gate');
+  if (!gate) return;
+  gate.classList.add('done');
+  gate.replaceChildren();
+  const up = el('div', 'tup', 'Conversion critique complete');
+  up.style.color = '#00D492';
+  const t = el('div', 'ttl', 'We graded ' + url);
+  t.style.marginTop = '8px';
+  const note = el('div', 'fnote', 'Everything below is that page.');
+  note.style.marginTop = '8px';
+  gate.append(up, t, note);
 }
 
 function updateToolLinks(url) {
@@ -750,7 +769,8 @@ const state = {
   url: null,
   overallGrade: null,
   errorKind: null,                 // kind of the last scan error (429/502/422/timeout/...)
-  hasReport: false                 // a real report has rendered at least once this session
+  hasReport: false,                // a real report has rendered at least once this session
+  gateDoneUrl: null                // URL graded by scan 2, once it has succeeded
 };
 
 // The raw report of the last successful scan; scan 2 (conversion gate) merges
@@ -768,6 +788,14 @@ function setProgress(pct, message) {
   render();
 }
 
+// Whenever the entry screen is showing progress or a problem, the decorative
+// preview card gets out of the way. A visitor whose scan just failed should not
+// be looking at a grade card next to the error.
+function setEntryBusy(on) {
+  const screen = document.querySelector('.entryscreen');
+  if (screen) screen.classList.toggle('busy', !!on);
+}
+
 function showScanError(err) {
   state.mode = 'error';
   state.phaseText = '';
@@ -776,11 +804,49 @@ function showScanError(err) {
   state.unlockedThrough = 'conversation';
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
+  const title = document.getElementById('scan-error-title');
+  if (title) title.textContent = 'Scan failed';
   const msg = document.getElementById('scan-error-msg');
   if (msg) msg.textContent = err.message;
+  const retry = document.getElementById('scan-retry');
+  if (retry) { retry.hidden = false; retry.textContent = 'Try again'; }
   const card = document.getElementById('scan-error');
   if (card) card.hidden = false;
+  setEntryBusy(true);
   render();
+}
+
+// Nothing was sent, so claiming a scan failed would be a lie. The empty box and
+// a typo are also different problems and get different messages.
+function showEntryProblem(title, message) {
+  state.mode = state.hasReport ? 'ready' : 'demo';
+  state.errorKind = 'input';
+  state.phaseText = '';
+  setCtaScanning(false);
+  const progress = document.getElementById('scan-progress');
+  if (progress) progress.hidden = true;
+  const t = document.getElementById('scan-error-title');
+  if (t) t.textContent = title;
+  const msg = document.getElementById('scan-error-msg');
+  if (msg) msg.textContent = message;
+  // The field is right above and gets focus, so a "Try again" button here would
+  // just be a second thing to ignore.
+  const retry = document.getElementById('scan-retry');
+  if (retry) retry.hidden = true;
+  const card = document.getElementById('scan-error');
+  if (card) card.hidden = false;
+  setEntryBusy(true);
+  const input = document.getElementById('entry-url');
+  if (input) { input.classList.add('invalid'); input.focus(); }
+  render();
+}
+
+function clearEntryProblem() {
+  const card = document.getElementById('scan-error');
+  if (card) card.hidden = true;
+  const input = document.getElementById('entry-url');
+  if (input) input.classList.remove('invalid');
+  setEntryBusy(false);
 }
 
 function setCtaScanning(on) {
@@ -797,9 +863,9 @@ function startScan(url) {
   state.unlockedThrough = 'entry';
   state.failed = {};
   state.url = url;
-  const errCard = document.getElementById('scan-error');
-  if (errCard) errCard.hidden = true;
+  clearEntryProblem();
   setCtaScanning(true);
+  setEntryBusy(true);
   go('entry');
   setProgress(2, 'Starting your scan…');
   const card = document.getElementById('scan-progress');
@@ -837,8 +903,7 @@ function showReport(report) {
   updateToolLinks(view.url);
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
-  const errCard = document.getElementById('scan-error');
-  if (errCard) errCard.hidden = true;
+  clearEntryProblem();
   render();
 }
 
@@ -972,25 +1037,43 @@ if (scanForm) {
   scanForm.addEventListener('submit', e => {
     e.preventDefault();
     const input = document.getElementById('entry-url');
-    const url = normalizeUrl(input ? input.value : '');
-    if (!url) { showScanError(scanError(422)); return; }
+    const raw = (input ? input.value : '').trim();
+    if (!raw) {
+      showEntryProblem('Enter a URL first',
+        'Nothing was sent. Put your product or solution page in the box above and the Genie will grade it.');
+      return;
+    }
+    const url = normalizeUrl(raw);
+    if (!url) {
+      showEntryProblem('That URL does not look right',
+        'We could not read “' + raw + '” as a web address. It should look like yourbrand.com/solution.');
+      return;
+    }
     startScan(url);
+  });
+}
+
+const entryInput = document.getElementById('entry-url');
+if (entryInput) {
+  entryInput.addEventListener('input', () => {
+    if (state.errorKind === 'input') clearEntryProblem();
   });
 }
 
 const retryBtn = document.getElementById('scan-retry');
 if (retryBtn) {
   retryBtn.addEventListener('click', () => {
-    const card = document.getElementById('scan-error');
-    if (card) card.hidden = true;
+    clearEntryProblem();
     // A 422 means the URL itself is not scannable. Re-running state.url would
-    // silently re-scan a stale/previous URL and ignore the user's correction, so
-    // send them back to the entry field (their typed value is still there) instead.
-    if (state.errorKind === 422 || !state.url) {
+    // silently re-scan a stale URL and ignore the user's correction. Clearing
+    // the box and focusing it is a visible outcome; leaving the broken URL sat
+    // there looked like the button did nothing.
+    if (state.errorKind === 422 || state.errorKind === 'input' || !state.url) {
       state.mode = state.hasReport ? 'ready' : 'demo';
       go('entry');
       const input = document.getElementById('entry-url');
-      if (input) input.focus();
+      if (input) { input.value = ''; input.focus(); }
+      render();
       return;
     }
     startScan(state.url);
@@ -1079,21 +1162,49 @@ function setGateScanning(on, message, pct) {
   if (bar && pct != null) bar.style.width = clampPct(pct) + '%';
 }
 
+// Inline validation with a visible message. Neither field was required and the
+// submit is a type=button, so native validation never fired: bad input produced
+// no border, no message and no request. Total silence at the highest-intent
+// moment on the site.
+function setFieldError(inputId, errId, message) {
+  const input = document.getElementById(inputId);
+  const err = document.getElementById(errId);
+  if (input) input.classList.toggle('invalid', !!message);
+  if (err) { err.textContent = message || ''; err.hidden = !message; }
+  return !message;
+}
+
+['gate-email', 'gate-url'].forEach(id => {
+  const n = document.getElementById(id);
+  if (n) n.addEventListener('input', () => setFieldError(id, id + '-err', null));
+});
+
 const gateBtn = document.getElementById('gate-submit');
 if (gateBtn) {
   gateBtn.addEventListener('click', () => {
     const emailInput = document.getElementById('gate-email');
-    const email = (emailInput ? emailInput.value : '').trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      if (emailInput) emailInput.focus();
-      return;
-    }
     const urlInput = document.getElementById('gate-url');
-    const url = normalizeUrl(urlInput ? urlInput.value : '');
-    if (!url) {
-      if (urlInput) urlInput.focus();
+    const email = (emailInput ? emailInput.value : '').trim();
+    const rawUrl = (urlInput ? urlInput.value : '').trim();
+
+    let emailMsg = null;
+    if (!email) emailMsg = 'We need an email to send your report to.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) emailMsg = '“' + email + '” is not a valid email address.';
+
+    let urlMsg = null;
+    const url = normalizeUrl(rawUrl);
+    if (!rawUrl) urlMsg = 'Add the page you want graded. It is usually your landing or offer page.';
+    else if (!url) urlMsg = 'We could not read “' + rawUrl + '” as a web address.';
+
+    // Report BOTH problems at once rather than one field at a time.
+    const emailOk = setFieldError('gate-email', 'gate-email-err', emailMsg);
+    const urlOk = setFieldError('gate-url', 'gate-url-err', urlMsg);
+    if (!emailOk || !urlOk) {
+      const first = document.getElementById(emailOk ? 'gate-url' : 'gate-email');
+      if (first) first.focus();
       return;
     }
+
     postLead(email, url, state.overallGrade);
     try { sessionStorage.setItem('genie:lead', email); } catch (e) {}
 
@@ -1105,6 +1216,7 @@ if (gateBtn) {
         const merged = mergeConversionScan(resp);
         try { sessionStorage.setItem('genie:report', JSON.stringify(merged)); } catch (e) {}
         setGateScanning(false);
+        state.gateDoneUrl = url;
         showReport(merged);
         go('conversion');
       })

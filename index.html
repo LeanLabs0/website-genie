@@ -135,6 +135,11 @@ h3{margin:0}
 input.field::placeholder{color:#757575}
 input.field:focus{outline:none;box-shadow:inset 0 0 0 1px #757575}
 .flab{font:600 10px/1 var(--font-heading);letter-spacing:.12em;text-transform:uppercase;color:#949494;display:block;margin-bottom:8px}
+/* The gate is the highest-intent moment on the site and it used to fail in
+   total silence: no border, no message, no request. */
+.field.invalid{box-shadow:inset 0 0 0 1px #E5484D}
+.ferr{font:500 12px/1.45 var(--font-body);color:#E5484D;margin-top:8px}
+.gate.done{box-shadow:inset 0 0 0 1px #00D492}
 .entry{max-width:680px;margin:24px auto;display:flex;flex-direction:column;gap:32px}
 .entrytop{text-align:center}
 .eprompt{font:600 48px/1.2 var(--font-heading);letter-spacing:-.01em;color:#fff;text-wrap:balance}
@@ -323,7 +328,7 @@ section[data-screen]{position:relative;z-index:1}
         <div class="fnote" style="margin-top:12px">This can take about a minute. Keep this tab open.</div>
       </div>
       <div class="card no-print" id="scan-error" hidden style="padding:24px;margin-top:24px;box-shadow:inset 0 0 0 1px #E5484D">
-        <div class="tup" style="color:#E5484D">Scan failed</div>
+        <div class="tup" id="scan-error-title" style="color:#E5484D">Scan failed</div>
         <div class="ttl" id="scan-error-msg" style="margin-top:8px">Something went wrong running your scan. Please try again.</div>
         <div style="margin-top:18px"><button class="btns" id="scan-retry" type="button">Try again</button></div>
       </div>
@@ -503,13 +508,22 @@ section[data-screen]{position:relative;z-index:1}
       <div class="movetitle">Conversion</div>
       <div class="movewhy">Most sites give a visitor exactly one way to act, so everyone who is not ready to buy today leaves with nothing. This move looks at how many ways your page lets a buyer move forward.</div>
       <div class="gate">
-        <div class="fx ac jb gap12" style="flex-wrap:wrap"><div class="ttl" style="margin:0">Run the landing-page critique</div></div>
+        <div class="fx ac jb gap12" style="flex-wrap:wrap"><div class="ttl" style="margin:0">Run the conversion critique</div></div>
         <div class="hr"></div>
-        <div class="cols2">
-          <div><label class="flab" for="gate-email">Work email</label><input class="field" id="gate-email" type="email" placeholder="you@company.com"></div>
-          <div><label class="flab" for="gate-url">Landing / solution page URL</label><input class="field" id="gate-url" type="url" placeholder="https://yoursite.com/offer"></div>
+        <div class="hsum" style="margin-top:0">This critique grades the page where visitors actually convert, which is usually not the page you started from. Give us that page and the Genie grades it in about 30 seconds.</div>
+        <div class="cols2" style="margin-top:20px">
+          <div>
+            <label class="flab" for="gate-email">Work email</label>
+            <input class="field" id="gate-email" type="email" placeholder="you@company.com" autocomplete="email">
+            <div class="ferr" id="gate-email-err" hidden></div>
+          </div>
+          <div>
+            <label class="flab" for="gate-url">Your conversion or landing page URL</label>
+            <input class="field" id="gate-url" type="url" placeholder="yoursite.com/offer">
+            <div class="ferr" id="gate-url-err" hidden></div>
+          </div>
         </div>
-        <div style="margin-top:16px"><button class="btnp" id="gate-submit" type="button">Get my FREE report now</button></div>
+        <div style="margin-top:16px"><button class="btnp" id="gate-submit" type="button">Grade my conversion page</button></div>
       </div>
       <div class="rhero">
         <div class="rhtext">

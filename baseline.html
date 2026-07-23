@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AEO Baseline · Lean Labs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0A; --card:#16181D; --card2:#1B1E24; --line:#2B2B2B;
+  --txt:#fff; --mut:#9A9A9A; --dim:#6E6E6E;
+  --amber:#F0A93B; --red:#E5484D; --green:#00D492;
+  --font-h:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-b:'Roboto',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--txt);font-family:var(--font-b);
+  min-height:100vh;overflow-x:hidden;position:relative;
+}
+/* magenta / violet glow bleeding from the lower left */
+body::before{
+  content:'';position:fixed;left:-8%;bottom:-38%;width:1100px;height:900px;
+  background:
+    radial-gradient(closest-side,rgba(206,60,146,.34),rgba(206,60,146,0) 72%) 20% 20%/660px 660px no-repeat,
+    radial-gradient(closest-side,rgba(112,54,186,.34),rgba(112,54,186,0) 72%) 64% 72%/900px 900px no-repeat;
+  filter:blur(40px);pointer-events:none;z-index:0;
+}
+.wrap{position:relative;z-index:1}
+
+/* ---------- nav ---------- */
+.nav{
+  height:71px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 40px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.brand{display:flex;align-items:center;gap:16px}
+.mark{width:38px;height:38px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.mark img,.mark svg{width:24px;height:24px;display:block}
+.bname{font:800 17px/1 var(--font-h);letter-spacing:.02em}
+.tools{
+  font:700 9px/1 var(--font-h);letter-spacing:.12em;color:#E75BA5;
+  border:1px solid #E75BA5;border-radius:4px;padding:4px 6px;margin-left:8px;
+}
+.slash{color:#3A3A3A;font-size:22px;margin:0 4px}
+.prod{font:400 19px/1 var(--font-h);color:#fff}
+.prod b{font-weight:700}
+.navcta{
+  font:600 14px/1 var(--font-h);color:#0D0D0D;background:#fff;border:0;
+  border-radius:999px;padding:13px 24px;cursor:pointer;white-space:nowrap;
+}
+.navcta:hover{background:#E8E8E8}
+
+/* ---------- hero ---------- */
+.hero{
+  max-width:1440px;margin:0 auto;padding:100px 40px 120px;
+  display:grid;grid-template-columns:540px 1fr;gap:100px;align-items:start;
+}
+.eyebrow{font:700 11px/1 var(--font-h);letter-spacing:.14em;color:#fff;text-transform:uppercase}
+h1{
+  font:800 52px/1.06 var(--font-h);letter-spacing:-.02em;margin:20px 0 0;
+}
+h1 .fade{color:#6B6B6B}
+.sub{
+  font:400 18px/1.5 var(--font-b);color:var(--mut);margin:22px 0 0;max-width:520px;
+}
+.sub b{color:#fff;font-weight:500}
+
+.scored{margin-top:52px}
+.scored .eyebrow{color:var(--mut)}
+.chips{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.chip{
+  display:flex;align-items:center;gap:12px;height:42px;padding:0 20px 0 14px;
+  border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.02);
+  font:500 15px/1 var(--font-h);
+}
+.chip .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:#fff}
+.chip .ic img,.chip .ic svg{width:20px;height:20px;display:block}
+
+.form{display:flex;gap:12px;margin-top:64px;flex-wrap:nowrap}
+.field{
+  width:301px;flex:0 1 301px;min-width:0;height:50px;border:1px solid var(--line);border-radius:10px;
+  background:rgba(255,255,255,.03);color:#fff;padding:0 24px;
+  font:400 15px/1 var(--font-b);outline:none;
+}
+.field::placeholder{color:#6E6E6E}
+.field:focus{border-color:#4A4A4A}
+.submit{
+  flex:0 0 auto;height:50px;padding:0 25px;border:0;border-radius:10px;background:#fff;color:#0D0D0D;
+  font:600 16px/1 var(--font-h);cursor:pointer;white-space:nowrap;
+}
+.submit:hover{background:#E8E8E8}
+.helper{font:400 14px/1 var(--font-b);color:var(--mut);margin-top:14px}
+
+/* ---------- right: stacked preview cards ---------- */
+.preview{position:relative;min-height:540px;min-width:470px}
+.pcard{
+  position:absolute;border:1px solid rgba(255,255,255,.07);border-radius:16px;
+  background:var(--card);box-shadow:0 24px 60px rgba(0,0,0,.55);
+}
+/* score card, top */
+.c-score{left:60px;top:0;width:350px;padding:36px 24px 0;z-index:2}
+.donut{
+  width:106px;height:106px;margin:0 auto;border-radius:50%;
+  background:conic-gradient(var(--amber) 0 47%,#2A2D33 47% 100%);
+  display:grid;place-items:center;
+}
+.donut .hole{
+  width:82px;height:82px;border-radius:50%;background:var(--card);
+  display:flex;align-items:baseline;justify-content:center;gap:2px;
+}
+.donut .n{font:800 34px/1 var(--font-h);color:var(--amber)}
+.donut .p{font:600 13px/1 var(--font-h);color:var(--amber)}
+.c-score .l1{font:700 15px/1.3 var(--font-h);text-align:center;margin-top:20px}
+.c-score .l2{font:400 10px/1.4 var(--font-b);color:var(--dim);text-align:center;margin-top:8px}
+.c-score .tested{
+  border-top:1px solid rgba(255,255,255,.07);margin-top:22px;padding:18px 0 20px;
+}
+.c-score .tested .k{font:700 8px/1 var(--font-h);letter-spacing:.12em;color:var(--dim)}
+.c-score .tested .v{font:400 9px/1.5 var(--font-b);color:#8A8A8A;margin-top:8px}
+/* question grid, behind on the right */
+.c-grid{left:120px;top:226px;width:350px;padding:14px;background:var(--card2);z-index:1}
+.grow{display:grid;grid-template-columns:1fr 115px 18px;align-items:center;gap:0;height:31px}
+.grow .q{font:400 8px/1.3 var(--font-b);color:#B4B4B4;padding-right:8px}
+.grow .hq{font:700 7px/1 var(--font-h);letter-spacing:.1em;color:var(--dim)}
+.eng{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.eng span{font:700 7px/1 var(--font-h);letter-spacing:.08em;color:var(--dim)}
+.dot{width:6px;height:6px;border-radius:50%;background:#3A3D44;margin:0 auto}
+.dot.on{background:var(--green)}
+.eye{width:12px;height:12px;opacity:.35;justify-self:end}
+.legend{display:flex;gap:16px;justify-content:flex-end;margin-top:10px}
+.legend i{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.legend span{font:400 8px/1 var(--font-b);color:var(--dim)}
+/* per-engine card, floating in front */
+.c-eng{left:0;top:226px;width:350px;padding:24px;z-index:3}
+.engrow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:center}
+.engrow .name{font:500 10px/1 var(--font-h);color:#C9C9C9}
+.mini{
+  width:62px;height:62px;margin:14px auto 0;border-radius:50%;display:grid;place-items:center;
+}
+.mini .hole{width:48px;height:48px;border-radius:50%;background:var(--card);display:grid;place-items:center}
+.mini .v{font:700 15px/1 var(--font-h)}
+.mini .v small{font-size:9px;font-weight:600;opacity:.85}
+.engrow .lab{font:600 10px/1 var(--font-h);margin-top:12px}
+.engrow .cnt{font:400 8px/1 var(--font-b);color:var(--dim);margin-top:5px}
+.t-red{color:var(--red)} .t-amber{color:var(--amber)}
+
+@media (max-width:1200px){
+  .hero{grid-template-columns:1fr;gap:64px;padding:72px 24px 96px}
+  .preview{min-height:560px;max-width:520px}
+}
+@media (max-width:640px){
+  .form{flex-wrap:wrap}
+  .field{width:100%;flex:1 1 100%}
+}
+@media (max-width:760px){
+  .nav{padding:0 20px}
+  .prod,.slash{display:none}
+  .navcta{font-size:13px;padding:11px 16px}
+  h1{font-size:38px}
+  .hero{padding:56px 20px 80px}
+  .form{flex-direction:column}
+  .submit{width:100%}
+  .preview{display:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <nav class="nav">
+    <div class="brand">
+      <span class="mark" aria-hidden="true"><img src="assets/leanlabs-icon.svg" alt=""></span>
+      <span class="bname">LEAN LABS<span class="tools">TOOLS</span></span>
+      <span class="slash">/</span>
+      <span class="prod"><b>AEO</b> Baseline</span>
+    </div>
+    <button class="navcta">Book an AEO Strategy Call</button>
+  </nav>
+
+  <main class="hero">
+    <section>
+      <div class="eyebrow">AEO Baseline</div>
+      <h1>See Your Brand's<br>AEO Baseline Score<br><span class="fade">in 60 Seconds</span></h1>
+      <p class="sub">Get a current report of your brand's performance on AI platforms, like ChatGPT, Claude &amp; Gemini. <b>100% Free.</b></p>
+
+      <div class="scored">
+        <div class="eyebrow">Scored across</div>
+        <div class="chips">
+          <span class="chip">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="#0D0D0D"><path d="M12 2a5 5 0 0 0-4.6 3A5 5 0 0 0 3.9 12a5 5 0 0 0 .8 6A5 5 0 0 0 10 21.4a5 5 0 0 0 7.4-1.3A5 5 0 0 0 20.1 12a5 5 0 0 0-.8-6A5 5 0 0 0 12 2Zm0 2.2 5.2 3v6l-5.2 3-5.2-3v-6Z"/></svg></span>
+            ChatGPT
+          </span>
+          <span class="chip">
+            <span class="ic" style="background:#D97757"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2.5 13.4 9l5.1-4-4 5.1 6.5 1.4-6.5 1.4 4 5.1-5.1-4L12 20.5 10.6 14l-5.1 4 4-5.1L3 11.5l6.5-1.4-4-5.1 5.1 4z"/></svg></span>
+            Claude
+          </span>
+          <span class="chip">
+            <span class="ic"><svg viewBox="0 0 24 24" fill="#4285F4"><path d="M12 2c.4 4.9 5.1 9.6 10 10-4.9.4-9.6 5.1-10 10-.4-4.9-5.1-9.6-10-10 4.9-.4 9.6-5.1 10-10Z"/></svg></span>
+            Gemini
+          </span>
+        </div>
+      </div>
+
+      <form class="form" id="baseline-form">
+        <input class="field" id="baseline-url" type="url" placeholder="yourbrand.com/solution" aria-label="Solution or product page URL">
+        <button class="submit" type="submit">Get My Baseline Score →</button>
+      </form>
+      <div class="helper">Enter a solution or product page URL</div>
+    </section>
+
+    <section class="preview" aria-hidden="true">
+      <!-- question x engine grid -->
+      <div class="pcard c-grid">
+        <div class="grow">
+          <span class="hq">QUESTION</span>
+          <span class="eng"><span>CHATGPT</span><span>CLAUDE</span><span>GEMINI</span></span>
+          <span class="eye">👁</span>
+        </div>
+        <div class="grow"><span class="q">Best AEO agencies for Series A startup CMOs</span><span class="eng"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Best answer engine optimization agencies with HubSpot integration</span><span class="eng"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Top 10 AI search optimization agencies in the United States</span><span class="eng"><i class="dot"></i><i class="dot on"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Best alternatives to traditional SEO agencies for AI search</span><span class="eng"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Top answer engine optimization agencies compared</span><span class="eng"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Recommended AEO agencies for scaleup marketing directors</span><span class="eng"><i class="dot on"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="grow"><span class="q">Who are the best AI search optimization agencies?</span><span class="eng"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span><span class="eye">👁</span></div>
+        <div class="legend">
+          <span><i style="background:var(--green)"></i>Recommended you</span>
+          <span><i style="background:#3A3D44"></i>Did not mention you</span>
+        </div>
+      </div>
+
+      <!-- headline score -->
+      <div class="pcard c-score">
+        <div class="donut"><span class="hole"><span class="n">47</span><span class="p">%</span></span></div>
+        <div class="l1">You show up in 14 of 30 AI answers</div>
+        <div class="l2">Your AI visibility for "answer engine optimization agency". This is where you stand.</div>
+        <div class="tested">
+          <div class="k">WHAT WE TESTED YOU FOR</div>
+          <div class="v">We checked how AI answers when buyers search for answer engine optimization agency (for Startups and scaleups seeking AI-driven marketing and lead generation). Not what you want to rank for? Refine</div>
+        </div>
+      </div>
+
+      <!-- per engine -->
+      <div class="pcard c-eng">
+        <div class="engrow">
+          <div>
+            <div class="name">ChatGPT</div>
+            <div class="mini" style="background:conic-gradient(var(--red) 0 30%,#2A2D33 30% 100%)"><span class="hole"><span class="v t-red">3<small>/10</small></span></span></div>
+            <div class="lab t-red">Rarely</div><div class="cnt">3 of 10 questions</div>
+          </div>
+          <div>
+            <div class="name">Claude</div>
+            <div class="mini" style="background:conic-gradient(var(--amber) 0 60%,#2A2D33 60% 100%)"><span class="hole"><span class="v t-amber">6<small>/10</small></span></span></div>
+            <div class="lab t-amber">Sometimes</div><div class="cnt">6 of 10 questions</div>
+          </div>
+          <div>
+            <div class="name">Gemini</div>
+            <div class="mini" style="background:conic-gradient(var(--amber) 0 50%,#2A2D33 50% 100%)"><span class="hole"><span class="v t-amber">5<small>/10</small></span></span></div>
+            <div class="lab t-amber">Sometimes</div><div class="cnt">5 of 10 questions</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</div>
+</body>
+</html>

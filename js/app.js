@@ -434,12 +434,17 @@ function updateToolLinks(url) {
 // API client
 // ---------------------------------------------------------------------------
 
-const API_BASE = 'https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/public-scanner/website-genie';
-// Low-privilege public scanner key, same posture as the public AEO scanner:
-// a key in static HTML is an identifier, not a secret. Real protection is the
-// engine's per-IP rate limit. Ralph: paste the key before go-live.
-const API_KEY = 'PASTE_PUBLIC_SCANNER_KEY_HERE';
-const LEAD_URL = 'https://factor8-agent-sdk.fly.dev/api/v1/website-genie/lead';
+// Engine base. For local testing serve this repo and run the engine on
+// 127.0.0.1:8300, then add ?engine=local to the URL.
+const LOCAL_ENGINE = new URLSearchParams(location.search).get('engine') === 'local';
+const ENGINE = LOCAL_ENGINE ? 'http://127.0.0.1:8300' : 'https://factor8-agent-sdk.fly.dev';
+const API_BASE = ENGINE + '/api/v1/brand-slug/public-scanner/website-genie';
+// Dedicated low-privilege Website Genie key, same posture as the public AEO
+// scanner: a key in static HTML is an identifier, not a secret. Real
+// protection is the engine's per-IP rate limit. Rotate by replacing this
+// entry in the engine's FACTOR8_API_KEYS list.
+const API_KEY = 'wg_pub_884e5dc48cd9e33f210ccdb1';
+const LEAD_URL = ENGINE + '/api/v1/website-genie/lead';
 const SCAN_TIMEOUT_MS = 200000;
 
 function scanError(kind) {

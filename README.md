@@ -45,7 +45,11 @@ Shape summary:
 - `conversion` extras: `offer_ladder[]`, always all 9 in fixed order (`demo_call`, `mini_class`, `workshop`, `template`, `checklist`, `toolkit`, `calculator`, `webinar`, `accelerator`), each `key`, `label`, `present`, `evidence`.
 - `rollup` (page 6 Conversation): `grade`, `pct`, `pages[]` (`key`, `label`, `grade`, `pct`), `summary`, `priority_fixes[]` (3: `rank`, `title`, `detail`).
 
-Color rule (computed client-side, not sent): `pct >= 70` good `#00D492`, `40-69` mid `#FFA600`, `< 40` bad `#E5484D`.
+Color rule (computed client-side, not sent): **colour follows the letter, never a second threshold.** A/B good `#00D492`, C/D mid `#FFA600`, F bad `#E5484D`. Readouts that are not letters (proof coverage's "1 / 6") take the letter their `pct` would earn. Bar and dial *widths* are still `pct`.
+
+There used to be a separate pct rule (`>= 70` good, `40-69` mid, `< 40` bad) running alongside the backend's letter bands, which paints an F orange at 58 and a C- green at 72. The two scales are now one.
+
+Every grade is shown with the number behind it (`85/100` beside the letter on bars and dials, in the tooltip on finding chips). A letter on its own is an assertion the reader cannot check.
 
 Partial failure: a failed section keeps its shape with `grade: null`, empty `subscores`/`findings` and an `error` message; the frontend keeps that step locked ("Not available") and renders the rest. All three failed becomes an SSE error.
 

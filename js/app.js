@@ -68,14 +68,6 @@ customElements.define('image-slot', class extends HTMLElement {
 // Grade utilities
 // ---------------------------------------------------------------------------
 
-// Same thresholds as the engine's documented color rule:
-// pct >= 70 good, 40-69 mid, < 40 bad.
-function band(pct) {
-  if (pct >= 70) return 'good';
-  if (pct >= 40) return 'mid';
-  return 'bad';
-}
-
 const BAND_COLORS = { good: '#00D492', mid: '#FFA600', bad: '#E5484D' };
 
 // Letter bands mirror the backend's grading.py.
@@ -87,6 +79,29 @@ const LETTER_BANDS = [
 function letterFromPct(pct) {
   for (const [min, letter] of LETTER_BANDS) if (pct >= min) return letter;
   return 'F';
+}
+
+// Colour follows the LETTER, never a second set of thresholds.
+// There used to be two scales running side by side: the letter came from the
+// backend's bands (under 60 is F) while the colour came from pct >= 70 / >= 40.
+// That painted an F orange at 58%, a C- green at 72%, and put an orange
+// "Authoritativeness F" next to a red "Trust F" in the same list.
+// A/B good, C/D mid, F bad.
+function bandFromLetter(letter) {
+  const c = String(letter || '').trim().charAt(0).toUpperCase();
+  if (c === 'A' || c === 'B') return 'good';
+  if (c === 'C' || c === 'D') return 'mid';
+  return 'bad';
+}
+
+// Some readouts are not letters at all (proof coverage shows "1 / 6"). Those
+// fall back to the letter their pct would earn, so they sit on the same scale.
+const GRADE_RE = /^[ABCDF][+-]?$/i;
+
+function gradeBand(display, pct) {
+  const d = String(display || '').trim();
+  if (GRADE_RE.test(d)) return bandFromLetter(d);
+  return bandFromLetter(letterFromPct(clampPct(pct)));
 }
 
 // Fallback pct when only a letter is available (band midpoints).
@@ -228,9 +243,13 @@ function el(tag, className, text) {
 function buildBar(bar) {
   const cbar = el('div', 'cbar');
   const top = el('div', 'top');
-  top.append(el('span', 'cn', bar.label), el('span', 'cg', bar.display));
+  // The letter leads, the number backs it up. A naked letter is an assertion;
+  // the score is the evidence for it.
+  const gw = el('span', 'cgw');
+  gw.append(el('span', 'cg', bar.display), el('span', 'cp', bar.pct + '/100'));
+  top.append(el('span', 'cn', bar.label), gw);
   const track = el('div', 'track');
-  const fill = el('div', 'fill g-' + band(bar.pct));
+  const fill = el('div', 'fill g-' + gradeBand(bar.display, bar.pct));
   fill.style.width = bar.pct + '%';
   track.appendChild(fill);
   cbar.append(top, track);
@@ -246,7 +265,9 @@ function buildFinding(f) {
   if (f.pass) {
     rh.appendChild(el('span', 'passbadge', '✓ PASS'));
   } else {
-    rh.appendChild(el('span', 'rgrade t-' + band(f.pct), f.display));
+    const chip = el('span', 'rgrade t-' + gradeBand(f.display, f.pct), f.display);
+    chip.title = f.display + ' · ' + f.pct + ' out of 100';
+    rh.appendChild(chip);
   }
   card.append(rh, el('div', 'rv', f.detail));
   if (f.fix) card.appendChild(el('div', 'rx', 'Fix · ' + f.fix));
@@ -295,10 +316,11 @@ function buildFix(f) {
 // ---------------------------------------------------------------------------
 
 function setDial(dialEl, grade, pct) {
-  const color = BAND_COLORS[band(pct)];
+  const color = BAND_COLORS[gradeBand(grade, pct)];
+  // Ring width still tracks pct; only the colour comes from the letter.
   dialEl.style.background = 'conic-gradient(' + color + ' 0 ' + pct + '%,#212121 ' + pct + '% 100%)';
   const inner = dialEl.querySelector('.in');
-  if (inner) inner.textContent = grade;
+  if (inner) inner.replaceChildren(el('span', 'dg', grade), el('span', 'dp', pct + '/100'));
 }
 
 function bindText(root, name, value) {
@@ -494,9 +516,9 @@ function renderSectionScreen(key, sec) {
   const overallEl = root.querySelector('[data-overall]');
   if (overallEl) {
     const og = overallEl.querySelector('.og');
-    if (og) { og.className = 'og t-' + band(sec.pct); og.textContent = sec.grade; }
+    if (og) { og.className = 'og t-' + gradeBand(sec.grade, sec.pct); og.textContent = sec.grade; }
     const ot = overallEl.querySelector('.ot');
-    if (ot) ot.textContent = 'Overall performance · Grade ' + sec.grade;
+    if (ot) ot.textContent = 'Overall performance · Grade ' + sec.grade + ' · ' + sec.pct + ' out of 100';
     const os = overallEl.querySelector('.os');
     if (os) os.textContent = sec.overallNote;
   }

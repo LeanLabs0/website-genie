@@ -242,8 +242,8 @@ window.GENIE_DEMO = {
   "conversion": {
     "grade": "F",
     "pct": 45,
-    "verdict": "You only have one offer.",
-    "summary": "For your growth-marketing-team solution page, you only show a single offer: a demo. Buyers who want a different conversion path will likely bounce.",
+    "verdict": "One of the nine offer types is on your page.",
+    "summary": "On your growth-marketing-team solution page the demo is the only offer type we matched. Buyers who want a different conversion path have nothing else to take.",
     "meta_tags": [
       "Landing / solution page"
     ],

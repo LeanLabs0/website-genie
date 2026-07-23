@@ -101,7 +101,14 @@ The `kevin-photo` and `scheduler` slots are gone. They rendered the literal text
 - **Public API key**: `API_KEY` in `js/app.js` is a placeholder; paste the low-privilege public scanner key before go-live.
 - **Email gate scope**: v1 locks nothing; decide if it should gate pages 3-6 or the print output.
 - **Shareable report links**: pending backend `report_id` + `GET /report/{id}`; frontend hook (`?r=`) is dormant.
-- **Schema Score deep link**: the Code screen passes `https://schemascore.ai/?url=<encoded>`. Verified 2026-07-23: that URL loads (the `/{host}` path form 404s) but SchemaScore does not yet read the param into its field. Recheck later.
+- **Schema Score deep link**: the Code screen passes `https://schemascore.ai/?url=<encoded>`. Verified 2026-07-23: that URL loads (the `/{host}` path form 404s) but SchemaScore does not yet read the param into its field, so the card carries a line telling the visitor to paste it. PageSpeed and Agent Ready genuinely prefill; ours was the only one faking it. Drop the note the day SchemaScore honours the param.
+
+### For the backend (engine-side, not fixable here)
+
+- **Claim quotes are trimmed without saying so.** `credibility.claims[].claim` arrives as a shortened form of a longer sentence ("Put tedious marketing tasks on autopilot while your team focuses on strategy" for "...strategy and creative breakthroughs that actually move the needle", another dropped a middle clause). The frontend cannot tell a trimmed quote from a whole one, so it strips the quotation marks and heads the column "What the page claims". Send either the verbatim sentence or an explicit elision mark and the column can go back to being a quote.
+- **`conversion.verdict` can contradict its own findings.** The agent wrote "You only have one offer" on a page whose finding 4 praised a free-tier CTA as a second path. The offer-ladder headline is counted client-side and now says what it counted ("One of the 9 offer types shows up on this page"); the verdict sentence is the agent's and is left alone.
+- **A `fix` line occasionally arrives truncated mid-clause** ("...like 'publish-ready HubSpot pages in."). Intermittent, being fixed engine-side. The frontend drops a fix line that ends mid-clause rather than printing it.
+- **Pin coordinates need a per-finding crop** to be usable. See "Image slots".
 
 ## Honesty rules (do not regress)
 

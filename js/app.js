@@ -402,11 +402,16 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
   return derived;
 }
 
+// This headline is counted off the offer LADDER, a fixed list of 9 offer types.
+// Written as "You only have one offer" it flatly contradicted a finding on the
+// same screen ("Your free tier CTA gives hesitant visitors a safe next step"),
+// so the screen refuted itself. It now says what it actually counted.
 function offerHeadline(offers) {
   const n = offers.filter(o => o.present).length;
-  if (n === 1) return 'You only have one offer';
-  if (n === 0) return 'You have no offers yet';
-  return 'You have ' + n + ' of ' + offers.length + ' offers';
+  const total = offers.length || 9;
+  if (n === 0) return 'None of the ' + total + ' offer types show up on this page';
+  if (n === 1) return 'One of the ' + total + ' offer types shows up on this page';
+  return n + ' of the ' + total + ' offer types show up on this page';
 }
 
 // ---------------------------------------------------------------------------
@@ -483,9 +488,22 @@ function buildFinding(f) {
 // findings still say where they live in words. See README "Open items".
 // ---------------------------------------------------------------------------
 
+// The claim column is not a quotation. The engine shortens what it found (one
+// row dropped "and creative breakthroughs that actually move the needle", the
+// next dropped a middle clause) and the frontend has no way to tell a trimmed
+// quote from a whole one. Quotation marks around a trimmed quote are the lie,
+// so they come off and the column is headed "What the page claims".
+function unquote(text) {
+  return String(text == null ? '' : text)
+    .trim()
+    .replace(/^["'“”‘’]+/, '')
+    .replace(/["'“”‘’]+$/, '')
+    .trim();
+}
+
 function buildClaimRow(row) {
   const tr = document.createElement('tr');
-  tr.append(el('td', 'claim', row.claim), el('td', null, row.current_proof), el('td', null, row.recommendation));
+  tr.append(el('td', 'claim', unquote(row.claim)), el('td', null, row.current_proof), el('td', null, row.recommendation));
   return tr;
 }
 
@@ -1473,7 +1491,9 @@ if (gateBtn) {
     const rawUrl = (urlInput ? urlInput.value : '').trim();
 
     let emailMsg = null;
-    if (!email) emailMsg = 'We need an email to send your report to.';
+    // No PDF is generated and nothing is emailed, so this no longer promises a
+    // delivery. The email is how Lean Labs follows up, and that is what it says.
+    if (!email) emailMsg = 'We need an email so we know who to follow up with.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) emailMsg = '“' + email + '” is not a valid email address.';
 
     let urlMsg = null;

@@ -86,13 +86,17 @@ const SECTION_KEYS = ['copy', 'credibility', 'conversion'];
 
 function deriveGenieView(raw) {
   const demo = window.GENIE_DEMO || {};
+  // Only the demo/mock render (raw is the demo report itself, or nothing) may fall
+  // back to demo section data. A live report that omits a section is a contract
+  // violation and must be treated as unavailable, never backfilled with demo grades.
+  const isDemo = !raw || raw === demo;
   raw = raw || demo;
   const screenshots = raw.screenshots || demo.screenshots || {};
 
   const view = { url: raw.url || demo.url || '', brand: raw.brand || demo.brand || '', sections: {}, rollup: null };
 
   SECTION_KEYS.forEach(key => {
-    view.sections[key] = deriveSection(key, raw[key], (demo[key] || {}), screenshots);
+    view.sections[key] = deriveSection(key, raw[key], (demo[key] || {}), screenshots, isDemo);
   });
 
   const rollup = raw.rollup || demo.rollup || {};
@@ -111,8 +115,10 @@ function deriveGenieView(raw) {
   return view;
 }
 
-function deriveSection(key, sec, demoSec, screenshots) {
-  sec = sec || demoSec;
+function deriveSection(key, sec, demoSec, screenshots, isDemo) {
+  // Missing section on a live report => unavailable (empty section), never demo data.
+  // Demo/mock fall back to the demo section so ?mock=1 stays identical to the demo.
+  sec = sec || (isDemo ? demoSec : {});
   const available = !sec.error && (sec.grade != null || (sec.subscores || []).length > 0);
 
   const bars = (sec.subscores || []).map(s => ({
@@ -140,7 +146,7 @@ function deriveSection(key, sec, demoSec, screenshots) {
     display: displayGrade(f.grade, f.pct),
     pct: clampPct(f.pct, f.grade),
     pin: f.pin && typeof f.pin.x_pct === 'number' && typeof f.pin.y_pct === 'number'
-      ? { xPct: f.pin.x_pct, yPct: f.pin.y_pct } : null
+      ? { page: f.pin.page != null ? f.pin.page : null, xPct: f.pin.x_pct, yPct: f.pin.y_pct } : null
   }));
 
   const shotEntry = screenshots[sec.screenshot] || null;
@@ -156,6 +162,7 @@ function deriveSection(key, sec, demoSec, screenshots) {
     bars: bars,
     findings: findings,
     shotUrl: shotEntry ? (shotEntry.full_url || shotEntry.hero_url || null) : null,
+    screenshot: sec.screenshot || null,
     overallNote: sec.overall_note || '',
     swp: { strength: sec.strength || '', weakness: sec.weakness || '', priority: sec.priority || '' }
   };
@@ -270,9 +277,59 @@ function bindText(root, name, value) {
   if (node && value != null) node.textContent = value;
 }
 
+// A rendered report with an unavailable section must NOT keep the prototype's
+// sample markup: the print stylesheet reveals every hidden screen, so stale demo
+// grades would print as if they were the customer's. Hide the sample report (kept
+// in the DOM so a later successful re-scan can restore it) and show an explicit,
+// honest "Not available" panel on screen and in print.
+function renderUnavailableSection(root, key, sec) {
+  const screen = root.querySelector('.screen');
+  if (!screen) return;
+  const report = screen.querySelector('.report');
+  if (report) report.classList.add('genie-off');
+
+  // Keep the screen's heading (the Genius Move pill + title) from the prototype.
+  const pill = (report || root).querySelector('.movepill');
+  const title = (report || root).querySelector('.movetitle');
+  const pillText = pill ? pill.textContent : '';
+  const titleText = title ? title.textContent : (key.charAt(0).toUpperCase() + key.slice(1));
+
+  let panel = screen.querySelector('[data-unavail-panel]');
+  if (!panel) {
+    panel = el('div', 'card placeholder');
+    panel.setAttribute('data-unavail-panel', key);
+    screen.appendChild(panel);
+  }
+  panel.replaceChildren();
+  if (pillText) panel.appendChild(el('span', 'movepill', pillText));
+  const t = el('div', 'movetitle', titleText);
+  t.style.marginTop = '18px';
+  panel.appendChild(t);
+  const head = el('div', 'ttl', 'This section is not available');
+  head.style.marginTop = '14px';
+  panel.appendChild(head);
+  const note = el('div', 'hsum', sec && sec.error
+    ? 'We ran into a problem grading this section, so we left it out instead of showing numbers we can’t stand behind.'
+    : 'We couldn’t grade this section, so we left it out instead of showing numbers we can’t stand behind.');
+  note.style.cssText = 'margin:14px auto 0;max-width:48ch';
+  panel.appendChild(note);
+}
+
+// Undo any "Not available" state from an earlier render so a now-available section
+// shows its real report again.
+function restoreSection(root) {
+  const panel = root.querySelector('[data-unavail-panel]');
+  if (panel) panel.remove();
+  const report = root.querySelector('.report');
+  if (report) report.classList.remove('genie-off');
+}
+
 function renderSectionScreen(key, sec) {
   const root = document.querySelector('[data-screen="' + key + '"]');
-  if (!root || !sec || !sec.available) return;
+  if (!root || !sec) return;
+  if (!sec.available) { renderUnavailableSection(root, key, sec); return; }
+  // Section is available: undo any "Not available" panel left by an earlier render.
+  restoreSection(root);
 
   const dial = root.querySelector('[data-dial]');
   if (dial) setDial(dial, sec.grade, sec.pct);
@@ -300,8 +357,17 @@ function renderSectionScreen(key, sec) {
     shot.querySelectorAll('.pin').forEach(p => p.remove());
     const defaults = DEFAULT_PINS[key] || [];
     sec.findings.forEach((f, i) => {
-      const pos = f.pin || defaults[i];
-      if (pos) shot.appendChild(buildPin(f.n, pos));
+      if (f.pin) {
+        // Engine pin: place it only when it targets THIS section's screenshot.
+        // A pin on another page would land on the wrong image, so skip it (the
+        // finding card still carries the number n). A pin with no page is assumed
+        // to belong here, matching the pre-contract behavior.
+        if (f.pin.page != null && sec.screenshot != null && f.pin.page !== sec.screenshot) return;
+        shot.appendChild(buildPin(f.n, f.pin));
+      } else {
+        const pos = defaults[i];
+        if (pos) shot.appendChild(buildPin(f.n, pos));
+      }
     });
   }
 
@@ -497,7 +563,9 @@ const state = {
   unlockedThrough: 'conversation', // last step reachable from the rail
   failed: {},                      // section key -> true (partial report)
   url: null,
-  overallGrade: null
+  overallGrade: null,
+  errorKind: null,                 // kind of the last scan error (429/502/422/timeout/...)
+  hasReport: false                 // a real report has rendered at least once this session
 };
 
 function setProgress(pct, message) {
@@ -514,6 +582,7 @@ function setProgress(pct, message) {
 function showScanError(err) {
   state.mode = 'error';
   state.phaseText = '';
+  state.errorKind = err && err.kind != null ? err.kind : null;
   state.unlockedThrough = 'conversation';
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
@@ -554,6 +623,7 @@ function showReport(report) {
   SECTION_KEYS.forEach(k => { if (!view.sections[k].available) state.failed[k] = true; });
   state.url = view.url;
   state.overallGrade = view.rollup && view.rollup.available ? view.rollup.grade : null;
+  state.hasReport = true;
   renderReport(view);
   updateToolLinks(view.url);
   const progress = document.getElementById('scan-progress');
@@ -643,12 +713,17 @@ if (retryBtn) {
   retryBtn.addEventListener('click', () => {
     const card = document.getElementById('scan-error');
     if (card) card.hidden = true;
-    state.mode = state.url ? state.mode : 'demo';
-    if (state.url) startScan(state.url);
-    else {
+    // A 422 means the URL itself is not scannable. Re-running state.url would
+    // silently re-scan a stale/previous URL and ignore the user's correction, so
+    // send them back to the entry field (their typed value is still there) instead.
+    if (state.errorKind === 422 || !state.url) {
+      state.mode = state.hasReport ? 'ready' : 'demo';
+      go('entry');
       const input = document.getElementById('entry-url');
       if (input) input.focus();
+      return;
     }
+    startScan(state.url);
   });
 }
 

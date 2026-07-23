@@ -138,7 +138,17 @@ function deriveGenieView(raw) {
   raw = raw || demo;
   const screenshots = raw.screenshots || demo.screenshots || {};
 
-  const view = { url: raw.url || demo.url || '', brand: raw.brand || demo.brand || '', sections: {}, rollup: null };
+  const meta = raw.meta || {};
+  const view = {
+    url: raw.url || demo.url || '',
+    brand: raw.brand || demo.brand || '',
+    // Counted from the data, never assumed. The sidebar used to state a fixed
+    // "4 graded moves + 3 technical reports" that contradicted the summary
+    // beside it.
+    pagesAnalyzed: Array.isArray(meta.pages_analyzed) ? meta.pages_analyzed.length : 0,
+    sections: {},
+    rollup: null
+  };
 
   SECTION_KEYS.forEach(key => {
     view.sections[key] = deriveSection(key, raw[key], (demo[key] || {}), screenshots, isDemo);
@@ -215,7 +225,13 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
   };
   if (key === 'credibility') derived.claims = (sec.claims || []).slice();
   if (key === 'conversion') {
-    derived.offers = (sec.offer_ladder || []).map(o => ({ label: o.label || o.key || '', present: !!o.present }));
+    // `evidence` explains WHY the engine judged an offer present. It is the most
+    // interesting analysis in the product and it used to be dropped on the floor.
+    derived.offers = (sec.offer_ladder || []).map(o => ({
+      label: o.label || o.key || '',
+      present: !!o.present,
+      evidence: o.evidence || ''
+    }));
     derived.offerHeadline = offerHeadline(derived.offers);
   }
   return derived;
@@ -293,7 +309,24 @@ function buildOffer(offer) {
   const div = el('div', 'offer ' + (offer.present ? 'have' : 'missing'));
   div.appendChild(el('span', 'ck', offer.present ? '✓' : '+'));
   div.appendChild(document.createTextNode(offer.label));
+  div.title = offer.present
+    ? (offer.evidence || 'Found on this page.')
+    : 'Not found on this page.';
   return div;
+}
+
+// The evidence behind each offer we DID find, spelled out under the grid.
+function buildOfferEvidence(offers) {
+  const rows = offers.filter(o => o.present && o.evidence);
+  if (!rows.length) return null;
+  const wrap = el('div', 'offerev');
+  wrap.appendChild(el('div', 'oevh', 'What we found, and where'));
+  rows.forEach(o => {
+    const row = el('div', 'oevrow');
+    row.append(el('span', 'oevl', o.label), el('span', 'oevd', o.evidence));
+    wrap.appendChild(row);
+  });
+  return wrap;
 }
 
 function buildSwpCard(label, value, hot) {
@@ -542,10 +575,17 @@ function renderSectionScreen(key, sec) {
     bindText(root, 'offer-headline', sec.offerHeadline);
     const grid = document.getElementById('offer-grid');
     if (grid) grid.replaceChildren.apply(grid, (sec.offers || []).map(buildOffer));
+    const evWrap = document.getElementById('offer-evidence');
+    if (evWrap) {
+      const built = buildOfferEvidence(sec.offers || []);
+      evWrap.replaceChildren();
+      if (built) evWrap.appendChild(built);
+      evWrap.hidden = !built;
+    }
   }
 }
 
-function renderRollup(rollup) {
+function renderRollup(rollup, pagesAnalyzed) {
   const root = document.querySelector('[data-screen="conversation"]');
   if (!root || !rollup || !rollup.available) return;
   // Undo the "run a scan first" panel now that there is a real rollup.
@@ -555,13 +595,18 @@ function renderRollup(rollup) {
   const barsEl = root.querySelector('[data-bars]');
   if (barsEl) barsEl.replaceChildren.apply(barsEl, rollup.bars.map(buildBar));
   bindText(root, 'summary', rollup.summary);
+  // Say what the report actually covers, counted from the report itself.
+  const moves = rollup.bars.filter(b => b.display && b.display !== 'N/A').length;
+  let scope = 'Covers ' + moves + ' graded move' + (moves === 1 ? '' : 's');
+  if (pagesAnalyzed) scope += ' across ' + pagesAnalyzed + ' page' + (pagesAnalyzed === 1 ? '' : 's');
+  bindText(root, 'scope', scope);
   const list = document.getElementById('fix-list');
   if (list) list.replaceChildren.apply(list, rollup.fixes.map(buildFix));
 }
 
 function renderReport(view) {
   SECTION_KEYS.forEach(key => renderSectionScreen(key, view.sections[key]));
-  renderRollup(view.rollup);
+  renderRollup(view.rollup, view.pagesAnalyzed);
   // The gate URL field is deliberately NOT prefilled with the page we already
   // scanned. Prefilling made the second scan require no new information, which
   // exposed the form as a pure email wall: the whole point is a DIFFERENT page,
@@ -592,11 +637,15 @@ function updateToolLinks(url) {
   if (ps) ps.href = 'https://pagespeed.web.dev/report?url=' + encodeURIComponent(url);
   // isitagentready.com takes the bare host as a path segment, not a query.
   const ar = document.querySelector('[data-tool-link="agentready"]');
-  if (ar) {
-    let host = '';
-    try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
-    ar.href = host ? 'https://isitagentready.com/' + host : 'https://isitagentready.com/';
-  }
+  let host = '';
+  try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {}
+  if (ar) ar.href = host ? 'https://isitagentready.com/' + host : 'https://isitagentready.com/';
+  // schemascore.ai: the path form (schemascore.ai/{host}) 404s, the query form
+  // loads. Checked 2026-07-23: the tool does not yet read ?url= into its field,
+  // so the visitor may still have to paste, but the link carries the page and
+  // starts working the day SchemaScore honours it.
+  const ss = document.querySelector('[data-tool-link="schema"]');
+  if (ss) ss.href = 'https://schemascore.ai/?url=' + encodeURIComponent(url);
 }
 
 // ---------------------------------------------------------------------------
@@ -1009,11 +1058,25 @@ function render() {
   if (rail) rail.hidden = move === 'entry';
   syncStickyOffsets();
   scrollActiveStepIntoView();
+  syncHScroll();
 }
 
-window.addEventListener('resize', () => { syncStickyOffsets(); syncRailScroll(); });
+// Any horizontally scrolling block (the claims table) advertises the fact.
+function syncHScroll() {
+  document.querySelectorAll('[data-hscroll]').forEach(box => {
+    const wrap = box.parentElement;
+    if (!wrap) return;
+    const max = box.scrollWidth - box.clientWidth;
+    wrap.classList.toggle('more-right', max > 4 && box.scrollLeft < max - 4);
+  });
+}
+
+window.addEventListener('resize', () => { syncStickyOffsets(); syncRailScroll(); syncHScroll(); });
 const railEl = document.querySelector('.rail');
 if (railEl) railEl.addEventListener('scroll', syncRailScroll, { passive: true });
+document.querySelectorAll('[data-hscroll]').forEach(box => {
+  box.addEventListener('scroll', syncHScroll, { passive: true });
+});
 
 function go(k) {
   if (isLockedStep(k)) return;
@@ -1103,8 +1166,11 @@ function mergeConversionScan(resp) {
         grade: base[k] && !base[k].skipped ? base[k].grade : null,
         pct: base[k] && !base[k].skipped ? base[k].pct : null
       }));
+      // Count the graded MOVES, which is what this number actually is. Calling
+      // them pages contradicted meta.pages_analyzed.
       base.rollup.summary = (base.brand || 'Your site') + ' grades ' + base.rollup.grade +
-        ' overall across ' + pcts.length + ' graded page' + (pcts.length === 1 ? '' : 's') + '.';
+        ' overall (' + overall + ' out of 100) across ' + pcts.length +
+        ' graded move' + (pcts.length === 1 ? '' : 's') + '.';
       const convFixes = ((resp.rollup || {}).priority_fixes || []);
       if (convFixes.length) {
         const fixes = ((base.rollup.priority_fixes || []).filter(f => f)).slice(0, 2);

@@ -72,7 +72,7 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 - **Step rail** (sticky, under the top bar): each step shows one of 4 states: `done` (green check number), `active` (white number, highlighted), `next` (outlined number, "Up next"), `locked` (45% opacity). In demo/ready modes all steps navigate; once a real report is rendered, remaining steps read "View" (not "Locked", which is only the prototype's relative-position wording). While scanning, only the next upcoming step shows the live phase text ("Copy graded: B-"); the others read "Locked". The Conversion step reads "Enter your page URL" until scan 2 runs. Failed report sections stay locked with "Not available".
 - **Entry form**: URL is normalized (scheme added if missing) and validated client-side before the scan starts.
 - **Scan errors**: mapped to plain messages (429 high demand, 502 unreachable URL, 422 bad URL, timeout, network) in the `#scan-error` card with a retry button.
-- **Email gate** (Conversion screen): captures the lead AND triggers scan 2 (the Conversion critique of the URL entered here). Submits to the engine's lead endpoint (non-blocking), then runs a `scope: "conversion"` scan with inline progress on the gate button, merges the result, and re-renders the Conversion screen and the rollup.
+- **Email gate** (Conversion screen): captures the lead AND triggers scan 2 (the Conversion critique of the URL entered here). Both fields validate inline with a visible message before anything is sent. The URL field is deliberately **not** prefilled with the entry URL: this critique wants the page where visitors actually convert, which is usually a different page, and prefilling made the gate a pure email wall. Submits to the engine's lead endpoint (non-blocking), then runs a `scope: "conversion"` scan with progress in a card under the gate, merges the result, and re-renders the Conversion screen and the rollup. On success the form is replaced by a confirmation naming the URL that was graded.
 - **Funnel breadcrumb** (top bar): Opt In > Genie > Accelerator > Blueprint. Only "Opt In" navigates. Accelerator/Blueprint are future funnel stages, not built.
 - **Teaser cards** at the bottom of each report screen advance to the next move.
 - Navigation scrolls to top and updates the URL hash.
@@ -87,25 +87,39 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 
 ## Image slots
 
-`<image-slot>` elements render an `<img>` when a `src` attribute is set (also late, after parse) and a placeholder label otherwise. Live reports fill `shot-copy`, `shot-cred`, `shot-conv` with the engine's full-page screenshots (`object-position: top`); finding pins position by the engine's `{x_pct, y_pct}` when present, else keep the prototype's default spots. Still needing real assets:
+`<image-slot>` elements render an `<img>` when a `src` attribute is set (also late, after parse). Live reports fill `shot-copy`, `shot-cred`, `shot-conv` with the engine's full-page screenshots (`object-position: top`). A section with no screenshot hides its frame entirely rather than showing an empty labelled box, and a screenshot that 404s after the retries collapses the same way (`.shot.noshot`).
 
-1. `kevin-photo`: Kevin Barber headshot, 220x220 rounded
-2. `scheduler`: scheduling calendar embed (booking tool TBD)
+**Pins are annotations, not decoration.** One is drawn only when the engine supplied real `{x_pct, y_pct}` for that finding AND the pin's `page` matches the screenshot this section is showing. No coordinates, no pin. The prototype's `DEFAULT_PINS` are gone: they sat at fixed CSS positions unrelated to the findings, so pin 4 landed on the nav while finding 4 was about a hero button.
+
+The `kevin-photo` and `scheduler` slots are gone. They rendered the literal text "Photo of Kevin" and "Scheduling calendar" in empty grey boxes on the final screen. Kevin's slot is now a text block (name + role); the scheduler slot is the booking CTA plus what the call covers.
 
 ## Open items (decisions needed before production)
 
-- **CTA targets**: "Book a Website Makeover Call" / "Book with Kevin" buttons have no URL yet.
-- **Cost & ROI screen**: placeholder only, needs design.
-- **"Email me the full report (PDF)"**: print stylesheet exists (page-per-screen), no generation flow.
+- **Kevin's calendar link**: `BOOKING_URL` at the top of `js/app.js` currently points at `https://www.lean-labs.com/contact` as a documented placeholder. Change that one line and all five booking CTAs follow. The same URL is duplicated on the `<a href>` tags so the buttons work without JS; update both when it changes.
 - **Public API key**: `API_KEY` in `js/app.js` is a placeholder; paste the low-privilege public scanner key before go-live.
-- **Email gate scope**: v1 locks nothing; decide if it should gate pages 3-6 or the PDF.
+- **Email gate scope**: v1 locks nothing; decide if it should gate pages 3-6 or the print output.
 - **Shareable report links**: pending backend `report_id` + `GET /report/{id}`; frontend hook (`?r=`) is dormant.
+- **Schema Score deep link**: the Code screen passes `https://schemascore.ai/?url=<encoded>`. Verified 2026-07-23: that URL loads (the `/{host}` path form 404s) but SchemaScore does not yet read the param into its field. Recheck later.
+
+## Honesty rules (do not regress)
+
+These came out of prospect audits of the live site. Each one shipped as a fix:
+
+1. **Sample data renders only behind `?demo=1` / `?mock=1`.** On any other visit, report screens show a "Run a scan to see this" panel. A deep link to `#copy` or `#cost` used to hand a fresh visitor a complete, unlocked report with letter grades and dollar figures about a business nobody scanned.
+2. **Print carries the visitor's report and nothing else.** No entry hero, no decorative art, no forms, and nothing at all when no scan has run. It used to lead with the sample "B- / 1,240 words" card above the user's real grade.
+3. **One grading scale.** Colour comes from the letter, `js/demo-data.js` letters are computed from their pct on the engine's bands, and the static sample markup matches. The demo file is publicly readable, so a second, kinder curve in it is a competitor's screenshot.
+4. **Every grade shows its number.**
+5. **Nothing invented on screen.** No fake grades in decoration, no prefilled dollar figures on Cost & ROI, no hardcoded findings in "why this move matters" copy, no pins without coordinates.
+6. **Nothing fails silently.** The gate validates both fields inline; an empty entry box does not claim a scan failed.
 
 Resolved since the prototype handoff:
 
 - ~~Agent Ready link: confirm final tool URL.~~ It is `isitagentready.com/{domain}`; the Code screen link carries the scanned host.
 - ~~Email gate: form fields exist, no submit endpoint.~~ Wired to `POST /api/v1/website-genie/lead`.
 - ~~Real grades/copy are hardcoded sample data. Production pulls from the Genie engine.~~ Wired: live scans render engine reports; the sample data now lives in `js/demo-data.js` as the demo/mock dataset.
+- ~~CTA targets: "Book a Website Makeover Call" / "Book with Kevin" buttons have no URL yet.~~ All five booking CTAs run off `BOOKING_URL`; only the destination is still a placeholder.
+- ~~"Email me the full report (PDF)": print stylesheet exists, no generation flow.~~ The button calls `window.print()` and says "Print / save the full report", which is what it does.
+- ~~Cost & ROI screen: placeholder only, needs design.~~ Built. It multiplies out the visitor's own numbers and starts empty, so nothing is asserted about their business until they type it.
 
 ## Files
 

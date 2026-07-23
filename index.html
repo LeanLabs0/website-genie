@@ -117,12 +117,25 @@ h3{margin:0}
 .overall .og{width:56px;height:56px;border-radius:12px;background:#212121;display:flex;align-items:center;justify-content:center;font:600 22px/1 var(--font-heading);flex:none}
 .overall .ot{font:600 17px/1.35 var(--font-heading);color:#fff}
 .overall .os{font:400 14px/1.5 var(--font-body);color:#949494;margin-top:3px}
+/* On a phone this 560px table sits in a ~350px box and stops at a tidy card
+   border, so it looks complete while hiding the only actionable column. Fade
+   the cut edge, say so in words, and pin the claim column so a recommendation
+   is never read without the claim it belongs to. */
+.tswrap{position:relative}
+.tswrap::after{content:'';position:absolute;top:0;right:0;bottom:0;width:56px;pointer-events:none;
+  border-radius:0 16px 16px 0;opacity:0;transition:opacity .18s;
+  background:linear-gradient(270deg,#141414,rgba(20,20,20,0))}
+.tswrap.more-right::after{opacity:1}
+.scrollhint{display:none;margin-top:10px;font:500 12px/1.4 var(--font-body);color:#B0B0B0}
+.tswrap.more-right .scrollhint{display:block}
 .tscroll{overflow-x:auto;border-radius:16px;background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B}
 .tbl{width:100%;border-collapse:collapse;font:400 14px/1.5 var(--font-body);min-width:560px;color:#949494}
 .tbl th{text-align:left;font:600 10px/1 var(--font-heading);letter-spacing:.12em;color:#757575;text-transform:uppercase;padding:14px 20px;border-bottom:1px solid #2B2B2B;white-space:nowrap}
 .tbl td{padding:14px 20px;border-bottom:1px solid #2B2B2B;vertical-align:top}
 .tbl tr:last-child td{border-bottom:0}
 .tbl .claim{font-weight:500;color:#fff}
+.tbl th:first-child,.tbl td:first-child{position:sticky;left:0;z-index:1;background:#141414;
+  box-shadow:1px 0 0 #2B2B2B}
 .teaser{display:flex;align-items:center;gap:24px;margin-top:40px;padding:32px}
 .tup{font:600 10px/1 var(--font-heading);letter-spacing:.14em;text-transform:uppercase;color:#757575}
 .ttl{font:600 20px/1.3 var(--font-heading);margin-top:8px;color:#fff}
@@ -174,6 +187,13 @@ input.field:focus{outline:none;box-shadow:inset 0 0 0 1px #757575}
 .offer .ck{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font:600 11px/1 var(--font-heading);color:#757575;box-shadow:inset 0 0 0 1.5px #2B2B2B;flex:none}
 .offer.have .ck{background:rgba(0,212,146,.15);box-shadow:none;color:#00D492}
 .offer.missing{opacity:.55}
+/* The engine explains why it judged an offer present. Show that. */
+.offerev{margin-top:18px;padding:20px 22px;border-radius:12px;background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B}
+.oevh{font:600 10px/1 var(--font-heading);letter-spacing:.13em;text-transform:uppercase;color:#757575}
+.oevrow{display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 16px;margin-top:14px;align-items:baseline}
+.oevl{font:600 14px/1.4 var(--font-heading);color:#fff}
+.oevd{font:400 14px/1.5 var(--font-body);color:#949494}
+@media (max-width:620px){.oevrow{grid-template-columns:minmax(0,1fr)}}
 .slotwrap{position:relative;width:100%;height:100%;min-height:200px}
 .toolby{font:600 10px/1 var(--font-heading);letter-spacing:.13em;text-transform:uppercase;color:#757575;margin-top:5px}
 image-slot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1C1C1C;box-shadow:inset 0 0 0 1px #2B2B2B}
@@ -277,7 +297,8 @@ section[data-screen]{position:relative;z-index:1}
 .roifield{display:flex;align-items:center;gap:8px}
 .roifield span{font:600 18px/1 var(--font-heading);color:#949494}
 .roiin .field{margin-top:6px}
-.roirange{width:100%;margin-top:12px;accent-color:#00D492}
+/* The only control on the Cost screen. It was a 16px tap target. */
+.roirange{width:100%;margin-top:6px;accent-color:#00D492;height:44px;cursor:pointer}
 .roibig{font:600 40px/1.1 var(--font-heading);color:#fff;margin-top:10px}
 .roibig span{font-size:16px;color:#949494;margin-left:4px}
 .roisub{font:400 14px/1.4 var(--font-body);color:#949494;margin-top:6px}
@@ -463,7 +484,8 @@ section[data-screen]{position:relative;z-index:1}
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">No testimonials on your solution page</span></div><span class="rgrade t-bad" title="F · 30 out of 100">F</span></div><div class="rv">Zero quotes tied to this specific offer; social proof lives elsewhere on the site.</div><div class="rx">Fix · Add one named quote tied to the offer.</div></div>
       </div>
       <div class="sectlab"><span class="n">Next</span><h3>What should I do next?</h3><span class="ln"></span></div>
-      <div class="tscroll">
+      <div class="tswrap">
+      <div class="tscroll" data-hscroll>
         <table class="tbl">
           <thead><tr><th>Claim</th><th>Current proof</th><th>Recommendation</th></tr></thead>
           <tbody id="claims-body">
@@ -472,6 +494,8 @@ section[data-screen]{position:relative;z-index:1}
             <tr><td class="claim">“Used by high-growth teams”</td><td>Unnamed logos</td><td>Name the logos / add a quote</td></tr>
           </tbody>
         </table>
+      </div>
+      <div class="scrollhint">Swipe the table sideways for the recommendation →</div>
       </div>
       <div class="card teaser">
         <div class="f1">
@@ -554,6 +578,12 @@ section[data-screen]{position:relative;z-index:1}
         <div class="offer missing"><span class="ck">+</span>Webinar</div>
         <div class="offer missing"><span class="ck">+</span>Accelerator</div>
       </div>
+      <div id="offer-evidence">
+        <div class="offerev">
+          <div class="oevh">What we found, and where</div>
+          <div class="oevrow"><span class="oevl">Demo call</span><span class="oevd">Primary hero CTA; demo buttons repeat down the page.</span></div>
+        </div>
+      </div>
       <div class="card teaser">
         <div class="f1">
           <div class="tup">Up next · Genius Move #4</div>
@@ -574,7 +604,7 @@ section[data-screen]{position:relative;z-index:1}
     <span class="movepill">Genius Move #4</span>
     <div class="movetitle">Code</div>
     <div class="movesub">LLM Agent Ready</div>
-    <div class="movewhy">Your technical foundation, scored by tools we trust. Three reports we can run for you, each opens in a new tab.</div>
+    <div class="movewhy">Your technical foundation, checked by three tools we trust. We do not score this part. These are three checks you run yourself, each opens in a new tab.</div>
     <div class="cols3" style="margin-top:28px">
       <div class="card rcard">
         <div><div class="rt" style="font-size:18px">Schema Score</div><div class="toolby">Lean Labs</div></div>
@@ -663,7 +693,7 @@ section[data-screen]{position:relative;z-index:1}
         <div class="cbar"><div class="top"><span class="cn">Credibility</span><span class="cgw"><span class="cg">F</span><span class="cp">58/100</span></span></div><div class="track"><div class="fill g-bad" style="width:58%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Conversion</span><span class="cgw"><span class="cg">F</span><span class="cp">48/100</span></span></div><div class="track"><div class="fill g-bad" style="width:48%"></div></div></div>
       </div>
-      <div class="sidenote">4 graded moves + 3 technical reports</div>
+      <div class="sidenote" data-bind="scope">Covers 3 graded moves across 2 pages</div>
     </aside>
     <div>
       <span class="movepill">Genius Move #6</span>

@@ -110,10 +110,32 @@ const LETTER_PCT = {
   'C+': 78, 'C': 74, 'C-': 71, 'D+': 68, 'D': 64, 'D-': 61, 'F': 50
 };
 
-function clampPct(pct, gradeFallback) {
+// A score we can actually print, or null. Null means "there is no number here",
+// which is NOT zero. The old clampPct(null, null) returned 0, so a section
+// nobody ran rendered as a hard-earned "N/A 0/100" with a red bar next to it.
+// An ungraded thing never shows a number.
+function pctOrNull(pct, gradeFallback) {
   if (typeof pct === 'number' && isFinite(pct)) return Math.max(0, Math.min(100, Math.round(pct)));
   if (gradeFallback && LETTER_PCT[gradeFallback] != null) return LETTER_PCT[gradeFallback];
-  return 0;
+  return null;
+}
+
+// Widths that are not scores (the scan progress bar) still need a number.
+function clampPct(pct, gradeFallback) {
+  const v = pctOrNull(pct, gradeFallback);
+  return v == null ? 0 : v;
+}
+
+// One row of a score bar list. `graded` is false when the engine has no number
+// for it, and then nothing numeric is ever built from this row.
+function makeBar(label, grade, pct) {
+  const p = pctOrNull(pct, grade);
+  return {
+    label: label,
+    graded: p != null,
+    display: p == null ? null : displayGrade(grade, p),
+    pct: p
+  };
 }
 
 function displayGrade(grade, pct) {
@@ -155,19 +177,163 @@ function deriveGenieView(raw) {
   });
 
   const rollup = raw.rollup || demo.rollup || {};
+  const rollupPct = pctOrNull(rollup.pct, rollup.grade);
+  const bars = (rollup.pages || []).map(pg => makeBar(pg.label, pg.grade, pg.pct));
+
+  // Which moves carry no grade, and why. "Not graded yet" (the visitor has not
+  // run that scan) and "we could not grade it" are different facts.
+  const pending = [];
+  const failedMoves = [];
+  (rollup.pages || []).forEach((pg, i) => {
+    if (bars[i] && bars[i].graded) return;
+    const sec = pg.key ? view.sections[pg.key] : null;
+    const label = pg.label || (pg.key ? pg.key.charAt(0).toUpperCase() + pg.key.slice(1) : 'One move');
+    if (sec && sec.error) failedMoves.push(label);
+    else pending.push(label);
+  });
+
   view.rollup = {
     available: rollup.grade != null || (rollup.pages || []).length > 0,
-    grade: displayGrade(rollup.grade, rollup.pct),
-    pct: clampPct(rollup.pct, rollup.grade),
-    bars: (rollup.pages || []).map(pg => ({
-      label: pg.label,
-      display: displayGrade(pg.grade, pg.pct),
-      pct: clampPct(pg.pct, pg.grade)
-    })),
-    summary: rollup.summary || '',
-    fixes: (rollup.priority_fixes || []).map(f => ({ rank: f.rank, title: f.title || '', detail: f.detail || '' }))
+    grade: rollupPct == null ? null : displayGrade(rollup.grade, rollupPct),
+    pct: rollupPct,
+    bars: bars,
+    summary: rollupSummary(rollup.summary, {
+      brand: view.brand, grade: displayGrade(rollup.grade, rollupPct), pct: rollupPct,
+      bars: bars, pending: pending, failed: failedMoves
+    }),
+    fixes: orderFixes(rollup.priority_fixes || [], bars)
   };
   return view;
+}
+
+// ---------------------------------------------------------------------------
+// Priority fixes: one list, one order, one "Start here".
+//
+// The engine writes the rank rationale INTO each fix ("Start here. This is the
+// lowest-scoring finding (F) in your lowest-scoring move, Credibility."), and
+// the conversion scan merges a fix that was also authored as a rank-1 line. The
+// closing screen ended up saying "Start here" on cards 1 and 3, so the one
+// screen whose job is to make the visitor book could not say what to do first.
+// The rendered list is therefore re-derived here: worst move first, renumbered
+// 1-2-3, and the rationale rewritten to match the rank each card actually gets.
+// ---------------------------------------------------------------------------
+
+const FIX_LEAD_RE = /^\s*(start here|next|then)\.\s+/i;
+
+function parseFix(detail) {
+  let text = String(detail || '').trim();
+  const lead = text.match(FIX_LEAD_RE);
+  let grade = null;
+  let label = null;
+  if (lead) {
+    text = text.slice(lead[0].length);
+    // The engine's rationale sentence, if it wrote one.
+    const why = text.match(/^[^.]*\bfinding\b[^.]*\.\s*/i);
+    if (why) {
+      const g = why[0].match(/\(([^)]+)\)/);
+      if (g) grade = g[1].trim();
+      const byMove = why[0].match(/(?:move|page)[,:]?\s+([^.,]+)\.\s*$/i);
+      const byIn = why[0].match(/\bin\s+([^.,]+)\.\s*$/i);
+      if (byMove) label = byMove[1].trim();
+      else if (byIn) label = byIn[1].trim();
+      text = text.slice(why[0].length);
+    }
+  }
+  return { action: text.trim(), grade: grade, label: label, hadLead: !!lead };
+}
+
+function fixRationale(rank, grade, label) {
+  const g = grade ? ' (' + grade + ')' : '';
+  const inMove = label ? ', in ' + label : '';
+  if (rank === 1) {
+    return 'Start here. This is the lowest-scoring finding' + g +
+      ' in your lowest-scoring move' + (label ? ', ' + label : '') + '.';
+  }
+  if (rank === 2) return 'Next. The worst remaining finding' + g + inMove + '.';
+  return 'Then. The worst finding left' + g + inMove + '.';
+}
+
+function orderFixes(rawFixes, bars) {
+  const pctByLabel = {};
+  bars.forEach(b => { if (b.graded && b.label) pctByLabel[String(b.label).toLowerCase()] = b.pct; });
+
+  // The merge can hand us the same card twice. Two identical cards in a
+  // three-item plan is not a plan.
+  const seenTitle = {};
+  const parsed = rawFixes.filter(f => f).map((f, i) => {
+    const p = parseFix(f.detail);
+    const key = p.label ? p.label.toLowerCase() : null;
+    return {
+      i: i,
+      title: f.title || '',
+      parsed: p,
+      movePct: key != null && pctByLabel[key] != null ? pctByLabel[key] : null
+    };
+  }).filter(f => {
+    const k = (f.title + '|' + f.parsed.action).toLowerCase().trim();
+    if (seenTitle[k]) return false;
+    seenTitle[k] = true;
+    return true;
+  });
+
+  // Sort worst move first only when every card tells us which move it belongs
+  // to. A half-known order is worse than the engine's own.
+  const sortable = parsed.length > 1 && parsed.every(f => f.movePct != null);
+  const ordered = sortable
+    ? parsed.slice().sort((a, b) => (a.movePct - b.movePct) || (a.i - b.i))
+    : parsed;
+
+  return ordered.slice(0, 3).map((f, idx) => {
+    const rank = idx + 1;
+    const detail = f.parsed.hadLead
+      ? (fixRationale(rank, f.parsed.grade, f.parsed.label) +
+         (f.parsed.action ? ' ' + f.parsed.action : ''))
+      : f.parsed.action;
+    return { rank: rank, title: f.title, detail: detail };
+  });
+}
+
+// A summary sentence that makes a countable claim about the report.
+const COUNTABLE_RE = /\bgraded\s+(page|move)s?\b|\bweakest\b|\bstrongest\b|\bcould not be graded\b|\bnot graded\b/i;
+
+function listLabels(items) {
+  if (items.length < 2) return items[0] || '';
+  return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
+}
+
+// The engine writes the rollup summary itself, and it writes "page" where it
+// means "move": "Basecamp grades B- overall across 2 graded pages. Credibility
+// is the weakest page at C+." Credibility is a MOVE, not a page, and that count
+// is a count of moves, so the sentence contradicted the sidebar one inch away
+// ("Covers 2 graded moves across 1 page"). Any summary that counts anything is
+// rebuilt HERE, from the report itself, so every number and every noun on that
+// screen comes from one place regardless of what the engine sent. A summary
+// with no countable claim (the hand-written demo one) is left alone.
+function rollupSummary(engineText, r) {
+  const text = String(engineText || '').trim();
+  const graded = r.bars.filter(b => b.graded);
+  if (text && !COUNTABLE_RE.test(text)) return text;
+  if (!graded.length) return '';
+
+  const sorted = graded.slice().sort((a, b) => a.pct - b.pct);
+  const worst = sorted[0];
+  const best = sorted[sorted.length - 1];
+  const n = graded.length;
+
+  let s = (r.brand || 'Your site') + ' grades ' + r.grade + ' overall';
+  if (r.pct != null) s += ' (' + r.pct + ' out of 100)';
+  s += ' across ' + n + ' graded move' + (n === 1 ? '' : 's') + '.';
+  if (n > 1 && worst.label !== best.label) {
+    s += ' ' + worst.label + ' is the weakest move at ' + worst.display +
+      '; ' + best.label + ' is the strongest at ' + best.display + '.';
+  }
+  if (r.pending.length) {
+    s += ' ' + listLabels(r.pending) + (r.pending.length === 1 ? ' is' : ' are') + ' not graded yet.';
+  }
+  if (r.failed.length) {
+    s += ' We could not grade ' + listLabels(r.failed) + ' this run.';
+  }
+  return s;
 }
 
 function deriveSection(key, sec, demoSec, screenshots, isDemo) {
@@ -177,18 +343,17 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
   const skipped = !!sec.skipped;
   const available = !skipped && !sec.error && (sec.grade != null || (sec.subscores || []).length > 0);
 
-  const bars = (sec.subscores || []).map(s => ({
-    label: s.label,
-    display: displayGrade(s.grade, s.pct),
-    pct: clampPct(s.pct, s.grade)
-  }));
+  const bars = (sec.subscores || []).map(s => makeBar(s.label, s.grade, s.pct));
   if (key === 'credibility') {
     const pc = sec.proof_coverage;
     if (pc) {
+      const cov = pctOrNull(pc.pct);
       bars.push({
         label: 'Proof coverage',
-        display: pc.label || ((pc.covered != null ? pc.covered : 0) + ' / ' + (pc.total != null ? pc.total : 0)),
-        pct: clampPct(pc.pct)
+        graded: cov != null,
+        display: cov == null ? null
+          : (pc.label || ((pc.covered != null ? pc.covered : 0) + ' / ' + (pc.total != null ? pc.total : 0))),
+        pct: cov
       });
     }
   }
@@ -199,8 +364,8 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
     detail: f.detail || '',
     fix: f.fix || null,
     pass: !!f.pass,
-    display: displayGrade(f.grade, f.pct),
-    pct: clampPct(f.pct, f.grade),
+    display: pctOrNull(f.pct, f.grade) == null ? null : displayGrade(f.grade, f.pct),
+    pct: pctOrNull(f.pct, f.grade),
     pin: f.pin && typeof f.pin.x_pct === 'number' && typeof f.pin.y_pct === 'number'
       ? { page: f.pin.page != null ? f.pin.page : null, xPct: f.pin.x_pct, yPct: f.pin.y_pct } : null
   }));
@@ -211,8 +376,8 @@ function deriveSection(key, sec, demoSec, screenshots, isDemo) {
     available: available,
     skipped: skipped,
     error: sec.error || null,
-    grade: displayGrade(sec.grade, sec.pct),
-    pct: clampPct(sec.pct, sec.grade),
+    grade: pctOrNull(sec.pct, sec.grade) == null ? null : displayGrade(sec.grade, sec.pct),
+    pct: pctOrNull(sec.pct, sec.grade),
     verdict: sec.verdict || '',
     summary: sec.summary || '',
     metas: (sec.meta_tags || []).slice(),
@@ -259,6 +424,13 @@ function el(tag, className, text) {
 function buildBar(bar) {
   const cbar = el('div', 'cbar');
   const top = el('div', 'top');
+  // Nothing was graded here, so there is no number and no bar. It used to
+  // render "N/A 0/100" with a red track, which is a score, and a bad one.
+  if (!bar.graded) {
+    top.append(el('span', 'cn', bar.label), el('span', 'cstat', 'Not graded yet'));
+    cbar.append(top);
+    return cbar;
+  }
   // The letter leads, the number backs it up. A naked letter is an assertion;
   // the score is the evidence for it.
   const gw = el('span', 'cgw');
@@ -280,6 +452,9 @@ function buildFinding(f) {
   rh.appendChild(rhl);
   if (f.pass) {
     rh.appendChild(el('span', 'passbadge', '✓ PASS'));
+  } else if (f.pct == null) {
+    // No score means no chip with a number in it.
+    rh.appendChild(el('span', 'nagrade', 'Not graded'));
   } else {
     const chip = el('span', 'rgrade t-' + gradeBand(f.display, f.pct), f.display);
     chip.title = f.display + ' · ' + f.pct + ' out of 100';
@@ -349,6 +524,13 @@ function buildFix(f) {
 // ---------------------------------------------------------------------------
 
 function setDial(dialEl, grade, pct) {
+  const inner0 = dialEl.querySelector('.in');
+  // Nothing graded: an empty ring and words, never a letter over a 0.
+  if (pct == null || grade == null) {
+    dialEl.style.background = '#212121';
+    if (inner0) inner0.replaceChildren(el('span', 'dna', 'Not graded yet'));
+    return;
+  }
   const color = BAND_COLORS[gradeBand(grade, pct)];
   // Ring width still tracks pct; only the colour comes from the letter.
   dialEl.style.background = 'conic-gradient(' + color + ' 0 ' + pct + '%,#212121 ' + pct + '% 100%)';
@@ -595,8 +777,10 @@ function renderRollup(rollup, pagesAnalyzed) {
   const barsEl = root.querySelector('[data-bars]');
   if (barsEl) barsEl.replaceChildren.apply(barsEl, rollup.bars.map(buildBar));
   bindText(root, 'summary', rollup.summary);
-  // Say what the report actually covers, counted from the report itself.
-  const moves = rollup.bars.filter(b => b.display && b.display !== 'N/A').length;
+  // Say what the report actually covers, counted from the report itself. This
+  // line and the summary above it are built from the same numbers, so they
+  // cannot disagree: moves are moves, pages are pages.
+  const moves = rollup.bars.filter(b => b.graded).length;
   let scope = 'Covers ' + moves + ' graded move' + (moves === 1 ? '' : 's');
   if (pagesAnalyzed) scope += ' across ' + pagesAnalyzed + ' page' + (pagesAnalyzed === 1 ? '' : 's');
   bindText(root, 'scope', scope);
@@ -1152,6 +1336,13 @@ function mergeConversionScan(resp) {
     if (resp.screenshots) {
       base.screenshots = Object.assign({}, base.screenshots || {}, resp.screenshots);
     }
+    // Scan 2 graded a page scan 1 never looked at. Without this the sidebar
+    // kept saying "across 1 page" on a screen that names two of them.
+    const seenPages = ((base.meta || {}).pages_analyzed || []).slice();
+    ((resp.meta || {}).pages_analyzed || []).forEach(u => {
+      if (u && seenPages.indexOf(u) === -1) seenPages.push(u);
+    });
+    base.meta = Object.assign({}, base.meta || {}, { pages_analyzed: seenPages });
     const pcts = SECTION_KEYS
       .map(k => base[k] && !base[k].skipped ? base[k].pct : null)
       .filter(p => typeof p === 'number');
@@ -1167,15 +1358,18 @@ function mergeConversionScan(resp) {
         pct: base[k] && !base[k].skipped ? base[k].pct : null
       }));
       // Count the graded MOVES, which is what this number actually is. Calling
-      // them pages contradicted meta.pages_analyzed.
+      // them pages contradicted meta.pages_analyzed. The wording is rebuilt
+      // again at render time (rollupSummary), which is the single authority.
       base.rollup.summary = (base.brand || 'Your site') + ' grades ' + base.rollup.grade +
         ' overall (' + overall + ' out of 100) across ' + pcts.length +
         ' graded move' + (pcts.length === 1 ? '' : 's') + '.';
       const convFixes = ((resp.rollup || {}).priority_fixes || []);
       if (convFixes.length) {
+        // Candidates only. Order, rank and rationale are re-derived in
+        // orderFixes() so the rendered list has exactly one "Start here".
         const fixes = ((base.rollup.priority_fixes || []).filter(f => f)).slice(0, 2);
         fixes.push(convFixes[0]);
-        base.rollup.priority_fixes = fixes.map((f, i) => ({ rank: i + 1, title: f.title, detail: f.detail }));
+        base.rollup.priority_fixes = fixes.map(f => ({ title: f.title, detail: f.detail }));
       }
     }
   }

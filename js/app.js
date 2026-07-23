@@ -649,7 +649,11 @@ function renderUnavailableSection(root, key, sec) {
 // No scan has run this session and the sample was not explicitly requested.
 // The step still exists and is still reachable; it just has nothing in it yet.
 // Anything else here would be invented grades about a site we never looked at.
-const AWAITING_KEYS = ['copy', 'credibility', 'conversion', 'conversation'];
+//
+// Conversion is deliberately NOT in this list. It is graded by its own gate scan
+// (scope=conversion) against a different page, so "put your page URL in on step 0"
+// is not how you fill that screen in. It gets the gate instead, and only the gate.
+const AWAITING_KEYS = ['copy', 'credibility', 'conversation'];
 
 function renderAwaitingScan() {
   AWAITING_KEYS.forEach(key => {
@@ -659,6 +663,8 @@ function renderAwaitingScan() {
       'Nothing has been graded yet. Put your page URL in on step 0 and the Genie fills this screen in with your own results.',
       'Enter your URL →');
   });
+  const conv = document.querySelector('[data-screen="conversion"]');
+  if (conv) renderGateSection(conv);
 }
 
 // Undo any "Not available" state from an earlier render so a now-available section
@@ -679,19 +685,19 @@ function renderGateSection(root) {
   const report = screen.querySelector('.report');
   if (report) report.classList.add('genie-off');
 
+  // The generic "run a scan on step 0" panel is never right on this screen, and
+  // when boot wrote one before the scan came back it stacked above the gate.
+  const stale = screen.querySelector('[data-unavail-panel]');
+  if (stale) stale.remove();
+
   let panel = screen.querySelector('[data-gate-panel]');
   if (!panel) {
     panel = el('div', 'card placeholder');
     panel.setAttribute('data-gate-panel', '1');
-    panel.appendChild(el('span', 'movepill', 'GENIUS MOVE #3'));
+    panel.appendChild(el('span', 'movepill', 'Genius Move #3'));
     const t = el('div', 'movetitle', 'Conversion');
     t.style.marginTop = '18px';
     panel.appendChild(t);
-    const teaser = el('div', 'hsum',
-      'This critique runs on the page where you actually convert visitors. ' +
-      'Enter your offer or landing page URL below and the Genie grades it in about 30 seconds.');
-    teaser.style.cssText = 'margin:14px auto 0;max-width:52ch';
-    panel.appendChild(teaser);
     const gate = (report || screen).querySelector('.gate');
     if (gate) {
       const marker = document.createComment('gate-home');

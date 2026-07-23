@@ -812,6 +812,40 @@ function normalizeUrl(value) {
 const ORDER = ['entry', 'copy', 'credibility', 'conversion', 'code', 'cost', 'conversation'];
 let move = 'entry';
 
+// The top bar wraps to two rows on narrow screens, so the rail's sticky offset
+// (and the sidebar's below it) has to be measured, not guessed. A wrong guess
+// leaves a strip of page showing through between the two sticky bars.
+function syncStickyOffsets() {
+  const root = document.documentElement;
+  const bar = document.querySelector('.topbar');
+  const rail = document.querySelector('.railwrap');
+  if (bar) root.style.setProperty('--topbar-h', Math.round(bar.getBoundingClientRect().height) + 'px');
+  if (rail) {
+    const h = rail.hidden ? 0 : Math.round(rail.getBoundingClientRect().height);
+    root.style.setProperty('--rail-h', h + 'px');
+  }
+}
+
+// Only about 3 of the 7 steps fit on a phone. Fade whichever edge has more
+// steps behind it, and keep the current step in view after every move.
+function syncRailScroll() {
+  const wrap = document.querySelector('.railwrap');
+  const rail = document.querySelector('.rail');
+  if (!wrap || !rail) return;
+  const max = rail.scrollWidth - rail.clientWidth;
+  wrap.classList.toggle('more-left', rail.scrollLeft > 4);
+  wrap.classList.toggle('more-right', max > 4 && rail.scrollLeft < max - 4);
+}
+
+function scrollActiveStepIntoView() {
+  const rail = document.querySelector('.rail');
+  const btn = rail && rail.querySelector('.step.sel');
+  if (!rail || !btn) return;
+  const target = btn.offsetLeft - (rail.clientWidth - btn.offsetWidth) / 2;
+  rail.scrollLeft = Math.max(0, Math.min(target, rail.scrollWidth - rail.clientWidth));
+  syncRailScroll();
+}
+
 // Only a running scan blocks navigation. A section that failed or is awaiting
 // its own scan is still reachable: its screen shows an honest panel. Blocking
 // it made visible buttons ("Continue to Conversion") silently do nothing.
@@ -858,7 +892,13 @@ function render() {
   // visitor is inside the report.
   const rail = document.querySelector('.railwrap');
   if (rail) rail.hidden = move === 'entry';
+  syncStickyOffsets();
+  scrollActiveStepIntoView();
 }
+
+window.addEventListener('resize', () => { syncStickyOffsets(); syncRailScroll(); });
+const railEl = document.querySelector('.rail');
+if (railEl) railEl.addEventListener('scroll', syncRailScroll, { passive: true });
 
 function go(k) {
   if (isLockedStep(k)) return;

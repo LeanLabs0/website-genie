@@ -35,9 +35,17 @@ h3{margin:0}
 .fstage:hover{color:#fff}
 .fstage.on{color:#fff;background:#1C1C1C;box-shadow:inset 0 0 0 1px #2B2B2B}
 .fsep{color:#2B2B2B;font:500 13px/1 var(--font-body)}
-.railwrap{position:sticky;top:69px;z-index:40;background:rgba(13,13,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid #2B2B2B;padding:12px 64px}
-.rail{display:flex;gap:8px;max-width:1280px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+/* Sticks directly under the top bar. The offset is measured at runtime
+   (--topbar-h) because the bar wraps to two rows on narrow screens. */
+.railwrap{position:sticky;top:var(--topbar-h,76px);z-index:40;background:rgba(13,13,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid #2B2B2B;padding:12px 64px}
+.rail{display:flex;gap:8px;max-width:1280px;margin:0 auto;overflow-x:auto;scrollbar-width:none;scroll-behavior:smooth}
 .rail::-webkit-scrollbar{display:none}
+/* On a phone only about 3 of the 7 steps fit. Fade the cut edge so it is
+   obvious the rail keeps going. */
+.railwrap::before,.railwrap::after{content:'';position:absolute;top:0;bottom:0;width:44px;pointer-events:none;opacity:0;transition:opacity .18s;z-index:2}
+.railwrap::before{left:0;background:linear-gradient(90deg,#0D0D0D,rgba(13,13,13,0))}
+.railwrap::after{right:0;background:linear-gradient(270deg,#0D0D0D,rgba(13,13,13,0))}
+.railwrap.more-left::before,.railwrap.more-right::after{opacity:1}
 .step{flex:1;min-width:96px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;background:transparent;border:0;border-radius:12px;padding:10px 12px;cursor:pointer;text-align:left}
 .step:hover{background:#141414}
 .step .snum{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font:600 12px/1 var(--font-heading);box-shadow:inset 0 0 0 1.5px #2B2B2B;color:#949494}
@@ -50,7 +58,7 @@ h3{margin:0}
 .step.sel{background:#141414;box-shadow:inset 0 0 0 1px #2B2B2B}
 .screen{max-width:1280px;margin:0 auto;padding:48px 64px 112px}
 .report{display:grid;grid-template-columns:280px 1fr;gap:32px;align-items:start}
-.side{position:sticky;top:160px;display:flex;flex-direction:column;gap:24px;padding:32px}
+.side{position:sticky;top:calc(var(--topbar-h,76px) + var(--rail-h,82px) + 20px);display:flex;flex-direction:column;gap:24px;padding:32px}
 .dialwrap{display:flex;flex-direction:column;align-items:center;gap:10px}
 .dial{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#0D0D0D}
 .dial .in{width:116px;height:116px;border-radius:50%;background:#141414;display:flex;align-items:center;justify-content:center;font:600 42px/1 var(--font-heading)}
@@ -147,8 +155,9 @@ input.field:focus{outline:none;box-shadow:inset 0 0 0 1px #757575}
 .toolby{font:600 10px/1 var(--font-heading);letter-spacing:.13em;text-transform:uppercase;color:#757575;margin-top:5px}
 image-slot{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#1C1C1C;box-shadow:inset 0 0 0 1px #2B2B2B}
 image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:center;padding:16px}
-@media (max-width:1200px){.report{grid-template-columns:1fr}.side{position:static}}
-@media (max-width:900px){.cols2,.cols3,.swp{grid-template-columns:1fr}.shot{width:100%}.bookrow{grid-template-columns:1fr}.screen{padding:32px 20px 64px}.topbar,.railwrap{padding-left:20px;padding-right:20px}.eprompt{font-size:36px}.report{grid-template-columns:minmax(0,1fr)}.side{padding:20px;min-width:0;max-width:100%}.side .btnp{white-space:normal;padding:12px 16px;width:100%;box-sizing:border-box}.cbar,.cbar .top{min-width:0}.cbar .cn{overflow-wrap:anywhere}.teaser{flex-direction:column;align-items:flex-start;gap:16px;padding:20px}.teaser .btnp{white-space:normal;width:100%;box-sizing:border-box}}
+@media (max-width:1200px){.report{grid-template-columns:minmax(0,1fr)}.side{position:static}}
+@media (max-width:900px){.cols2,.cols3,.swp{grid-template-columns:minmax(0,1fr)}.shot{width:100%}.bookrow{grid-template-columns:minmax(0,1fr)}.screen{padding:32px 20px 64px}.topbar,.railwrap{padding-left:20px;padding-right:20px}.eprompt{font-size:36px}.report{grid-template-columns:minmax(0,1fr)}.side{padding:20px;min-width:0;max-width:100%}.side .btnp{white-space:normal;padding:12px 16px;width:100%;box-sizing:border-box}.cbar,.cbar .top{min-width:0}.cbar .cn{overflow-wrap:anywhere}.teaser{flex-direction:column;align-items:flex-start;gap:16px;padding:20px}.teaser .btnp{white-space:normal;width:100%;box-sizing:border-box}.offers{grid-template-columns:1fr 1fr}.roiwrap{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:480px){.offers{grid-template-columns:minmax(0,1fr)}}
 /* Print = the saved/forwarded copy of the report. It must contain the visitor's
    real result and nothing else: no entry hero, no decorative sample card, no
    forms, and no sample screens when no scan has run. */
@@ -176,13 +185,29 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
 .prodname{font:400 19px/1 var(--font-heading);color:#fff}
 .prodname b{font-weight:700}
 .navpill{border-radius:999px;padding:11px 22px;font-size:14px}
-/* magenta glow behind the top of the page */
+/* magenta glow behind the top of the page.
+   It is 1500px wide and offset off-centre, so its right edge used to sit at
+   1005px on a 390px phone: 615px of pure black dead space you could swipe into
+   on every screen. Clipped at the viewport, and squared off to viewport width
+   on small screens for browsers without overflow clip. */
+html{overflow-x:clip}
+body{overflow-x:clip}
 body::before{content:'';position:absolute;top:-220px;left:50%;transform:translateX(-46%);
   width:1500px;height:760px;pointer-events:none;z-index:0;filter:blur(50px);
   background:
     radial-gradient(closest-side,rgba(196,52,138,.34),rgba(196,52,138,0) 72%) 40% 34%/760px 620px no-repeat,
     radial-gradient(closest-side,rgba(108,48,178,.30),rgba(108,48,178,0) 72%) 66% 52%/860px 640px no-repeat;}
-.topbar,.railwrap,section[data-screen]{position:relative;z-index:1}
+@media (max-width:1100px){
+  body::before{left:0;transform:none;width:100%;height:560px;top:-180px;
+    background:
+      radial-gradient(closest-side,rgba(196,52,138,.30),rgba(196,52,138,0) 72%) 30% 30%/120% 520px no-repeat,
+      radial-gradient(closest-side,rgba(108,48,178,.26),rgba(108,48,178,0) 72%) 80% 55%/120% 520px no-repeat;}
+}
+/* Keep the report above the glow. Deliberately does NOT touch .topbar or
+   .railwrap: setting position:relative on them killed their sticky behaviour,
+   which dropped the rail 69px into the page body where the section painted
+   over it and made every step unclickable. */
+section[data-screen]{position:relative;z-index:1}
 /* entry screen: left-aligned hero + decorative preview */
 .entryscreen{padding-top:92px}
 .entry{max-width:none;margin:0;display:grid;grid-template-columns:540px 1fr;gap:72px;align-items:center}

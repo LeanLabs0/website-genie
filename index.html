@@ -212,8 +212,17 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
 /* Print = the saved/forwarded copy of the report. It must contain the visitor's
    real result and nothing else: no entry hero, no decorative sample card, no
    forms, and no sample screens when no scan has run. */
+/* Print-only running head. Screen never sees it. */
+.printhead{display:none}
 @media print{
   @page{size:1280px 1700px;margin:0}
+  /* Every printed page says whose site this is, when we looked, and the
+     grade. Without it the leave-behind carried no URL and no date at all. */
+  .printhead{display:flex;justify-content:space-between;align-items:baseline;gap:20px;
+    font:500 12px/1.4 var(--font-body);color:#757575;
+    border-bottom:1px solid #2B2B2B;padding-bottom:10px;margin-bottom:24px}
+  .printhead .phl{overflow-wrap:anywhere}
+  .printhead .phr{white-space:nowrap}
   body::before{display:none!important}
   .topbar,.railwrap,.teaser,.no-print,.navpill,.entryart,form,.gate,
   #scan-progress,#scan-error,#gate-progress{display:none!important}

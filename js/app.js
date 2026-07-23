@@ -854,6 +854,39 @@ function renderGateConfirmation(url) {
   gate.append(up, t, note);
 }
 
+// The printed report is the leave-behind, and seven pages of it carried no
+// URL, no date and no grade: nothing said whose site it was or when we looked.
+// Every printed page now leads with all three. Screen-invisible by design.
+function renderPrintHeaders(report) {
+  const screens = document.querySelectorAll('[data-screen]:not([data-screen="entry"]) .screen');
+  if (!screens.length) return;
+
+  let left = 'Website Genie sample report';
+  let right = 'Not a real scan';
+  if (state.hasReport) {
+    left = 'Website Genie report · ' + (state.url || 'your site');
+    const stamp = (report && report.generated_at) ? new Date(report.generated_at) : new Date();
+    let when = '';
+    try {
+      when = stamp.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    } catch (e) { when = stamp.toDateString(); }
+    right = 'Scanned ' + when;
+    if (state.overallGrade) {
+      right += ' · Overall ' + state.overallGrade +
+        (state.overallPct != null ? ' · ' + state.overallPct + '/100' : '');
+    }
+  }
+
+  screens.forEach(scr => {
+    let head = scr.querySelector('.printhead');
+    if (!head) {
+      head = el('div', 'printhead');
+      scr.insertBefore(head, scr.firstChild);
+    }
+    head.replaceChildren(el('span', 'phl', left), el('span', 'phr', right));
+  });
+}
+
 function updateToolLinks(url) {
   if (!url) return;
   const ps = document.querySelector('[data-tool-link="pagespeed"]');
@@ -1179,6 +1212,7 @@ function showReport(report) {
   setReportFlag();
   renderReport(view);
   renderRoiGrade();
+  renderPrintHeaders(report);
   updateToolLinks(view.url);
   const progress = document.getElementById('scan-progress');
   if (progress) progress.hidden = true;
@@ -1711,3 +1745,4 @@ function renderRoi() {
 });
 renderRoi();
 renderRoiGrade();
+renderPrintHeaders(lastReport);

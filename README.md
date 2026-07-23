@@ -79,11 +79,16 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 
 ## Visual language
 
-- Dark theme only. Page `#0D0D0D`, cards `#141414`, inset 1px border `#2B2B2B`, raised elements `#212121`.
-- Grade colors: good `#00D492` / mid `#FFA600` / bad `#E5484D`. Gate/priority highlight: `#FDE68A` (pale yellow outline).
-- Type: **Plus Jakarta Sans** 600/700 for headings, grades, labels; **Roboto** 400/500 for body. Loaded from Google Fonts.
-- Grade dial: conic-gradient ring, percentage = `pct`. Sub-scores: 6px progress bars.
-- All labels/eyebrows: uppercase, letter-spaced, 10-12px.
+Tokens come from Chris's Figma file `jj4MFwoRo9IM92wdiKqn9c`: step 0 `241:211`,
+the report template `241:297`, Code `241:674`, Conversation `241:497`.
+
+- Dark theme only. Page `#000`, cards `#15191E` (carbon), no card border. Hairlines `rgba(255,255,255,.2)` for section rules and `.1` inside tables. Chips and raised elements `rgba(255,255,255,.1)`; meta pills `#35383B`.
+- Grade colors: good `#00D492` / mid `#FFA600` / bad `#E5484D`. The dial's letter takes its band colour; the unfilled ring is `#2B3036`.
+- Radii: 30px content cards, 12px controls and the sidebar/scheduler boxes, 8px the sidebar card and images, 100px the two pill buttons (nav CTA, sidebar CTA).
+- Type: **Plus Jakarta Sans** only, 400/500/600/700/800. Loaded from Google Fonts. Screen title 36px/-1.08px, section and verdict headings 20px/-.6px, finding titles 16px/-.48px, body 14px, eyebrows 10px with 1px tracking, uppercase.
+- Grid: 1110px shell centred (165px margins at 1440), report split 279px sidebar / 101px gutter / 730px content. The booking block on Conversation breaks out to the full shell.
+- Grade dial: 130px conic-gradient ring, percentage = `pct`. Sub-scores: 4px bars on a 5%-white track.
+- Step rail: 28px two-digit circle, label with its status underneath. Current step is a solid white circle; complete is a green ring; a step locked mid-scan drops to 50% opacity.
 
 ## Image slots
 
@@ -93,7 +98,17 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 
 Correct placement needs a per-finding crop, which is a different screenshot contract. Until that exists there are no markers and no "and where" promise; the findings say where they live in words. `pin` is still parsed into the view model and still ignored at render (`js/app.js`).
 
-The `kevin-photo` and `scheduler` slots are gone. They rendered the literal text "Photo of Kevin" and "Scheduling calendar" in empty grey boxes on the final screen. Kevin's slot is now a text block (name + role); the scheduler slot is the booking CTA plus what the call covers.
+The `kevin-photo` and `scheduler` slots are gone. They rendered the literal text "Photo of Kevin" and "Scheduling calendar" in empty grey boxes on the final screen.
+
+Kevin's photo is now a real committed asset, `assets/kevin-barber.png`, exported from Figma node `241:572` and used twice on the Conversation screen: 176px on the verdict card and 40px in the scheduling panel. Figma's asset URLs expire in about a week, so the bytes live in the repo and are never hotlinked.
+
+The scheduling panel is built to the design's layout but is **not** a scheduler, because there is nothing behind it. `BOOKING_URL` is still the Lean Labs contact page. Three rules keep it honest:
+
+1. The month grid is the real current month, computed at load in `buildScheduler()`. The mockup's hardcoded "July 2026" would have become a lie about availability the day it went stale.
+2. No time slots are invented. The mockup shows "9:00 PM / 9:30 PM"; showing those would be fabricated availability, so the slot column is one real CTA plus a line saying the booking page holds the calendar.
+3. Every future day is an `<a>` to `BOOKING_URL` opening in a new tab. Past days in the current month are inert, dimmed, and `aria-hidden`. Nothing in the panel is a control that silently does nothing.
+
+When a real calendar link exists, change `BOOKING_URL` and the whole panel points at it.
 
 ## Open items (decisions needed before production)
 
@@ -114,7 +129,7 @@ The `kevin-photo` and `scheduler` slots are gone. They rendered the literal text
 
 These came out of prospect audits of the live site. Each one shipped as a fix:
 
-1. **Sample data renders only behind `?demo=1` / `?mock=1`.** On any other visit, report screens show a "Run a scan to see this" panel. A deep link to `#copy` or `#cost` used to hand a fresh visitor a complete, unlocked report with letter grades and dollar figures about a business nobody scanned.
+1. **Sample data renders only behind `?demo=1` / `?mock=1`.** On any other visit, report screens show a "Run a scan to see this" panel. A deep link to `#copy` or `#cost` used to hand a fresh visitor a complete, unlocked report with letter grades and dollar figures about a business nobody scanned. **Conversion is the exception**: it is graded by its own gate scan (`scope=conversion`) against a different page, so "put your page URL in on step 0" is wrong advice there. That screen shows the gate and only the gate until its own scan runs. It used to show both, stacked.
 2. **Print carries the visitor's report and nothing else.** No entry hero, no decorative art, no forms, and nothing at all when no scan has run. It used to lead with the sample "B- / 1,240 words" card above the user's real grade.
 3. **The rollup summary is rewritten client-side.** The engine writes it, and it writes "page" where it means "move" ("across 2 graded pages. Credibility is the weakest page at C+") one inch from a sidebar reading "Covers 2 graded moves across 1 page". Any summary that makes a countable claim is rebuilt from the report itself in `rollupSummary()`, and the sidebar line is counted from the same bars, so the two cannot disagree. A summary with no countable claim (the hand-written demo one) passes through untouched.
 4. **An ungraded thing never shows a number.** `pctOrNull()` returns null, not 0, so a skipped or missing section renders "Not graded yet" with no score, no `0/100` and no coloured bar. Same guard on the dial and the finding chips.

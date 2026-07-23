@@ -358,6 +358,224 @@ function renderReport(view) {
   if (gateUrl && view.url) gateUrl.value = view.url;
 }
 
+function updateToolLinks(url) {
+  if (!url) return;
+  const ps = document.querySelector('[data-tool-link="pagespeed"]');
+  if (ps) ps.href = 'https://pagespeed.web.dev/report?url=' + encodeURIComponent(url);
+}
+
+// ---------------------------------------------------------------------------
+// API client
+// ---------------------------------------------------------------------------
+
+const API_BASE = 'https://factor8-agent-sdk.fly.dev/api/v1/brand-slug/public-scanner/website-genie';
+// Low-privilege public scanner key, same posture as the public AEO scanner:
+// a key in static HTML is an identifier, not a secret. Real protection is the
+// engine's per-IP rate limit. Ralph: paste the key before go-live.
+const API_KEY = 'PASTE_PUBLIC_SCANNER_KEY_HERE';
+const LEAD_URL = 'https://factor8-agent-sdk.fly.dev/api/v1/website-genie/lead';
+const SCAN_TIMEOUT_MS = 200000;
+
+function scanError(kind) {
+  const messages = {
+    429: 'High demand. Try again in a minute.',
+    502: 'We couldn’t reach that URL. Check it and try again.',
+    422: 'That doesn’t look like a URL we can scan. Check it and try again.',
+    timeout: 'The scan took too long and timed out. Please try again.',
+    network: 'We couldn’t reach the Genie engine. Check your connection and try again.',
+    incomplete: 'The scan ended early. Please try again.'
+  };
+  const err = new Error(messages[kind] || 'Something went wrong running your scan. Please try again.');
+  err.genie = true;
+  err.kind = kind;
+  return err;
+}
+
+// POST + incremental SSE parse (EventSource is GET-only, so we read the
+// streamed body by hand). Events: {phase, pct, message}; final frame is
+// {phase:"complete", pct:100, result}; failure is {phase:"error", status, detail}.
+async function runScan(url, email, onPhase) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), SCAN_TIMEOUT_MS);
+  try {
+    let res;
+    try {
+      res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream', 'X-API-Key': API_KEY },
+        body: JSON.stringify(email ? { url: url, email: email } : { url: url }),
+        signal: controller.signal
+      });
+    } catch (err) {
+      throw scanError(err && err.name === 'AbortError' ? 'timeout' : 'network');
+    }
+    if (!res.ok) throw scanError(res.status);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      let chunk;
+      try {
+        chunk = await reader.read();
+      } catch (err) {
+        throw scanError(err && err.name === 'AbortError' ? 'timeout' : 'network');
+      }
+      if (chunk.done) break;
+      buf += decoder.decode(chunk.value, { stream: true });
+      let idx;
+      while ((idx = buf.indexOf('\n\n')) !== -1) {
+        const frame = buf.slice(0, idx);
+        buf = buf.slice(idx + 2);
+        const data = frame.split('\n')
+          .filter(line => line.startsWith('data:'))
+          .map(line => line.slice(5).trim())
+          .join('\n');
+        if (!data) continue; // heartbeats / comments
+        let evt;
+        try { evt = JSON.parse(data); } catch (e) { continue; }
+        if (evt.phase === 'complete') return evt.result;
+        if (evt.phase === 'error') throw scanError(evt.status);
+        if (onPhase) onPhase(evt);
+      }
+    }
+    throw scanError('incomplete');
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Stubbed scan for UX testing without the engine: ?stub=1 succeeds with the
+// demo report, ?stub=fail exercises the error path.
+function stubScan(url, email, onPhase) {
+  const fail = PARAMS.get('stub') === 'fail';
+  const phases = [
+    { phase: 'fetching', pct: 5, message: 'Fetching your pages…' },
+    { phase: 'capturing', pct: 20, message: 'Capturing screenshots…' },
+    { phase: 'grading', pct: 35, message: 'Grading your site…' },
+    { phase: 'graded', pct: 55, message: 'Copy graded: B-' },
+    { phase: 'graded', pct: 70, message: 'Credibility graded: C' },
+    { phase: 'graded', pct: 85, message: 'Conversion graded: C-' },
+    { phase: 'compiling', pct: 92, message: 'Compiling your report…' }
+  ];
+  return new Promise((resolve, reject) => {
+    let i = 0;
+    const tick = () => {
+      if (i < phases.length) {
+        if (onPhase) onPhase(phases[i]);
+        i += 1;
+        setTimeout(tick, 700);
+      } else if (fail) {
+        reject(scanError(502));
+      } else {
+        const report = JSON.parse(JSON.stringify(window.GENIE_DEMO));
+        report.url = url;
+        resolve(report);
+      }
+    };
+    setTimeout(tick, 300);
+  });
+}
+
+// Lead capture: non-blocking, optimistic. Failures are swallowed.
+function postLead(email, url, overallGrade) {
+  const payload = { email: email, url: url };
+  if (overallGrade) payload.overall_grade = overallGrade;
+  return fetch(LEAD_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// State machine: demo -> scanning -> ready | error
+// ---------------------------------------------------------------------------
+
+const state = {
+  mode: 'demo',                    // demo | scanning | ready | error
+  phaseText: '',                   // live phase text shown on locked rail steps
+  unlockedThrough: 'conversation', // last step reachable from the rail
+  failed: {},                      // section key -> true (partial report)
+  url: null,
+  overallGrade: null
+};
+
+function setProgress(pct, message) {
+  if (message) state.phaseText = message;
+  const card = document.getElementById('scan-progress');
+  if (card) card.hidden = false;
+  const phase = document.getElementById('scan-phase');
+  if (phase && message) phase.textContent = message;
+  const bar = document.getElementById('scan-bar');
+  if (bar) bar.style.width = clampPct(pct) + '%';
+  render();
+}
+
+function showScanError(err) {
+  state.mode = 'error';
+  state.phaseText = '';
+  state.unlockedThrough = 'conversation';
+  const progress = document.getElementById('scan-progress');
+  if (progress) progress.hidden = true;
+  const msg = document.getElementById('scan-error-msg');
+  if (msg) msg.textContent = err.message;
+  const card = document.getElementById('scan-error');
+  if (card) card.hidden = false;
+  render();
+}
+
+function startScan(url) {
+  state.mode = 'scanning';
+  state.unlockedThrough = 'entry';
+  state.failed = {};
+  state.url = url;
+  const errCard = document.getElementById('scan-error');
+  if (errCard) errCard.hidden = true;
+  go('entry');
+  setProgress(2, 'Starting your scan…');
+  let email = null;
+  try { email = sessionStorage.getItem('genie:lead'); } catch (e) {}
+  const impl = PARAMS.get('stub') ? stubScan : runScan;
+  impl(url, email, evt => setProgress(evt.pct, evt.message))
+    .then(report => {
+      try { sessionStorage.setItem('genie:report', JSON.stringify(report)); } catch (e) {}
+      showReport(report);
+      go('copy');
+    })
+    .catch(err => showScanError(err.genie ? err : scanError('network')));
+}
+
+function showReport(report) {
+  const view = deriveGenieView(report);
+  state.mode = 'ready';
+  state.phaseText = '';
+  state.unlockedThrough = 'conversation';
+  state.failed = {};
+  SECTION_KEYS.forEach(k => { if (!view.sections[k].available) state.failed[k] = true; });
+  state.url = view.url;
+  state.overallGrade = view.rollup && view.rollup.available ? view.rollup.grade : null;
+  renderReport(view);
+  updateToolLinks(view.url);
+  const progress = document.getElementById('scan-progress');
+  if (progress) progress.hidden = true;
+  const errCard = document.getElementById('scan-error');
+  if (errCard) errCard.hidden = true;
+  render();
+}
+
+function normalizeUrl(value) {
+  value = (value || '').trim();
+  if (!value) return null;
+  if (!/^https?:\/\//i.test(value)) value = 'https://' + value;
+  try {
+    const u = new URL(value);
+    if (!u.hostname.includes('.')) return null;
+    return u.href;
+  } catch (e) {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Navigation (step rail)
 // ---------------------------------------------------------------------------
@@ -365,13 +583,25 @@ function renderReport(view) {
 const ORDER = ['entry', 'copy', 'credibility', 'conversion', 'code', 'cost', 'conversation'];
 let move = 'entry';
 
+function isLockedStep(k) {
+  if (state.mode === 'scanning') return ORDER.indexOf(k) > ORDER.indexOf(state.unlockedThrough);
+  return !!state.failed[k];
+}
+
 function render() {
   const cur = ORDER.indexOf(move);
   document.querySelectorAll('.step').forEach(btn => {
     const i = ORDER.indexOf(btn.dataset.step);
+    const k = btn.dataset.step;
     btn.classList.remove('done', 'active', 'sel', 'next', 'locked');
     let st;
-    if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
+    if (state.mode === 'scanning' && isLockedStep(k)) {
+      btn.classList.add('locked');
+      st = state.phaseText || 'Scanning…';
+    } else if (state.failed[k]) {
+      btn.classList.add('locked');
+      st = 'Not available';
+    } else if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
     else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
     else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
     else { btn.classList.add('locked'); st = 'Locked'; }
@@ -381,6 +611,7 @@ function render() {
 }
 
 function go(k) {
+  if (isLockedStep(k)) return;
   move = k;
   history.replaceState(null, '', '#' + k);
   render();
@@ -393,16 +624,83 @@ document.addEventListener('click', e => {
 });
 
 // ---------------------------------------------------------------------------
+// Forms
+// ---------------------------------------------------------------------------
+
+const scanForm = document.getElementById('scan-form');
+if (scanForm) {
+  scanForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = document.getElementById('entry-url');
+    const url = normalizeUrl(input ? input.value : '');
+    if (!url) { showScanError(scanError(422)); return; }
+    startScan(url);
+  });
+}
+
+const retryBtn = document.getElementById('scan-retry');
+if (retryBtn) {
+  retryBtn.addEventListener('click', () => {
+    const card = document.getElementById('scan-error');
+    if (card) card.hidden = true;
+    state.mode = state.url ? state.mode : 'demo';
+    if (state.url) startScan(state.url);
+    else {
+      const input = document.getElementById('entry-url');
+      if (input) input.focus();
+    }
+  });
+}
+
+const gateBtn = document.getElementById('gate-submit');
+if (gateBtn) {
+  gateBtn.addEventListener('click', () => {
+    const emailInput = document.getElementById('gate-email');
+    const email = (emailInput ? emailInput.value : '').trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      if (emailInput) emailInput.focus();
+      return;
+    }
+    const urlInput = document.getElementById('gate-url');
+    const url = normalizeUrl(urlInput ? urlInput.value : '') || state.url || '';
+    postLead(email, url, state.overallGrade);
+    try { sessionStorage.setItem('genie:lead', email); } catch (e) {}
+    gateBtn.textContent = 'Got it! Your report is on its way.';
+    gateBtn.disabled = true;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
 
 const PARAMS = new URLSearchParams(location.search);
 
-// ?mock=1: render the demo report through the full derive/render pipeline.
-// Acceptance: output must be visually identical to the untouched static page.
-if (PARAMS.get('mock') === '1' && window.GENIE_DEMO) {
-  renderReport(deriveGenieView(window.GENIE_DEMO));
-}
+// Modes:
+//   (bare) / ?demo=1  untouched prototype sample data
+//   ?mock=1           demo report rendered through the full derive/render pipeline
+//   ?stub=1|fail      entry form runs a fake scan (success | error path)
+//   live              entry form POSTs to the Genie engine (SSE)
+//   ?r=<id>           dormant hook for shareable reports, pending backend
+//                     GET /report/{id}; ignored for now.
+(function boot() {
+  if (PARAMS.get('demo') === '1') return;
+  if (PARAMS.get('mock') === '1' && window.GENIE_DEMO) {
+    showReport(window.GENIE_DEMO);
+    return;
+  }
+  let saved = null;
+  try { saved = sessionStorage.getItem('genie:report'); } catch (e) {}
+  if (saved) {
+    try { showReport(JSON.parse(saved)); } catch (e) {}
+  }
+  let lead = null;
+  try { lead = sessionStorage.getItem('genie:lead'); } catch (e) {}
+  if (lead) {
+    const emailInput = document.getElementById('gate-email');
+    if (emailInput) emailInput.value = lead;
+  }
+})();
 
 const h = location.hash.slice(1);
 if (ORDER.includes(h)) move = h;

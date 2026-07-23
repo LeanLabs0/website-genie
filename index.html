@@ -129,6 +129,7 @@ input.field:focus{outline:none;box-shadow:inset 0 0 0 1px #757575}
 .mrt{font:600 16px/1.3 var(--font-heading);color:#fff}
 .mrd{font:400 14px/1.5 var(--font-body);color:#949494;margin-top:4px}
 .placeholder{max-width:620px;margin:48px auto;text-align:center;padding:48px 40px}
+.genie-off{display:none!important}
 .hr{height:1px;background:#2B2B2B;margin:20px 0}
 .fixes{display:flex;flex-direction:column;gap:12px}
 .fix{display:flex;gap:16px;padding:20px 24px}
@@ -148,7 +149,7 @@ image-slot{position:absolute;inset:0;display:flex;align-items:center;justify-con
 image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:center;padding:16px}
 @media (max-width:1200px){.report{grid-template-columns:1fr}.side{position:static}}
 @media (max-width:900px){.cols2,.cols3,.swp{grid-template-columns:1fr}.shot{width:100%}.bookrow{grid-template-columns:1fr}.screen{padding:32px 20px 64px}.topbar,.railwrap{padding-left:20px;padding-right:20px}.eprompt{font-size:36px}}
-@media print{@page{size:1280px 1700px;margin:0}.topbar,.railwrap,.teaser{display:none}.screen{break-after:page}[hidden]{display:block!important}}
+@media print{@page{size:1280px 1700px;margin:0}.topbar,.railwrap,.teaser{display:none}.screen{break-after:page}[hidden]{display:block!important}.no-print{display:none!important}}
 </style>
 </head>
 <body>
@@ -188,11 +189,24 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="eprompt" style="margin-top:20px">See what’s holding your website back in AI search, and exactly how to fix it fast.</div>
       <div class="esub">Enter your most valuable product or solution page URL and get a full breakdown with fixes in 90 seconds or less.</div>
     </div>
-    <div>
-      <label class="flab" for="entry-url">Your solution page URL</label>
-      <input class="field" id="entry-url" type="url" placeholder="https://yoursite.com/your-solution-page">
+    <form id="scan-form" style="display:contents" novalidate>
+      <div>
+        <label class="flab" for="entry-url">Your solution page URL</label>
+        <input class="field" id="entry-url" type="url" placeholder="https://yoursite.com/your-solution-page">
+      </div>
+      <button class="btnp w100" style="padding:16px 24px;font-size:17px" id="entry-submit">Reveal Your Genius Moves →</button>
+    </form>
+    <div class="card no-print" id="scan-progress" hidden style="padding:28px">
+      <div class="tup">Scanning your site</div>
+      <div class="ttl" id="scan-phase" style="margin-top:8px">Starting your scan…</div>
+      <div class="track" style="margin-top:18px"><div class="fill g-good" id="scan-bar" style="width:0%"></div></div>
+      <div class="fnote" style="margin-top:12px">This can take a couple of minutes. Keep this tab open.</div>
     </div>
-    <button class="btnp w100" style="padding:16px 24px;font-size:17px" data-go="copy">Reveal Your Genius Moves →</button>
+    <div class="card no-print" id="scan-error" hidden style="padding:28px;box-shadow:inset 0 0 0 1px #E5484D">
+      <div class="tup" style="color:#E5484D">Scan failed</div>
+      <div class="ttl" id="scan-error-msg" style="margin-top:8px">Something went wrong running your scan. Please try again.</div>
+      <div style="margin-top:18px"><button class="btns" id="scan-retry" type="button">Try again</button></div>
+    </div>
     <div>
       <div class="sectlab"><span class="n">What we grade</span><h3>The Genius Moves</h3><span class="ln"></span></div>
       <div class="fx col gap12">
@@ -214,10 +228,10 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
   <div class="report">
     <aside class="side card">
       <div class="dialwrap">
-        <div class="dial" style="background:conic-gradient(#00D492 0 70%,#212121 70% 100%)"><div class="in">B-</div></div>
+        <div class="dial" data-dial="copy" style="background:conic-gradient(#00D492 0 70%,#212121 70% 100%)"><div class="in">B-</div></div>
         <span class="dl">Copy Grade</span>
       </div>
-      <div class="fx col gap16">
+      <div class="fx col gap16" data-bars>
         <div class="cbar"><div class="top"><span class="cn">Clarity</span><span class="cg">B+</span></div><div class="track"><div class="fill g-good" style="width:85%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Message–market fit</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Value proposition</span><span class="cg">C+</span></div><div class="track"><div class="fill g-mid" style="width:63%"></div></div></div>
@@ -233,9 +247,9 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="movewhy">Great design is rooted in strong copy, and if the copy is weak or misleading, it affects everything else. This is why we start here.</div>
       <div class="rhero">
         <div class="rhtext">
-          <div class="hverdict">Results: Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.</div>
-          <div class="hsum">We analyzed your home page &amp; solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.</div>
-          <div class="metaline"><span class="mtag">Homepage + solution page</span><span class="mtag">1,240 words</span><span class="mtag">Reading level · Grade 9</span></div>
+          <div class="hverdict" data-bind="verdict">Results: Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.</div>
+          <div class="hsum" data-bind="summary">We analyzed your home page &amp; solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.</div>
+          <div class="metaline" data-metas><span class="mtag">Homepage + solution page</span><span class="mtag">1,240 words</span><span class="mtag">Reading level · Grade 9</span></div>
         </div>
         <div class="shot">
           <image-slot id="shot-copy" data-placeholder="Screenshot of your page"></image-slot>
@@ -243,17 +257,17 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Copy critique</h3><span class="ln"></span></div>
-      <div class="cols2">
+      <div class="cols2" data-findings>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You lack an intermediate CTA</span></div><span class="rgrade t-mid">C</span></div><div class="rv">The hero offers three competing links and no single obvious next step.</div><div class="rx">Fix · Lead with one primary action above the fold.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">You overcome objections well</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Your FAQ and risk-reversal copy pre-empt the top buyer concerns before they’re asked.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your value proposition is “buried”</span></div><span class="rgrade t-mid">C+</span></div><div class="rv">The outcome appears below the fold, underneath your credentials and awards.</div><div class="rx">Fix · Open with the result, a predictable pipeline.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Your differentiation is thin</span></div><span class="rgrade t-mid">C-</span></div><div class="rv">“HubSpot Diamond Partner” is a category, not a difference. Nothing only you could say.</div><div class="rx">Fix · Make a claim unique to Lean Labs.</div></div>
       </div>
-      <div class="card overall">
+      <div class="card overall" data-overall>
         <div class="og t-good">B-</div>
         <div><div class="ot">Overall performance · Grade B-</div><div class="os">Strong fundamentals; the goal is a buyer-first value proposition.</div></div>
       </div>
-      <div class="swp">
+      <div class="swp" data-swp>
         <div class="card swpc"><div class="sl">Biggest strength</div><div class="sv">Clarity &amp; objection-handling</div></div>
         <div class="card swpc"><div class="sl">Biggest weakness</div><div class="sv">Buyer-outcome value prop</div></div>
         <div class="card swpc hot"><div class="sl">Improvement priority</div><div class="sv">Rewrite the hero headline</div></div>
@@ -277,10 +291,10 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
   <div class="report">
     <aside class="side card">
       <div class="dialwrap">
-        <div class="dial" style="background:conic-gradient(#FFA600 0 55%,#212121 55% 100%)"><div class="in">C</div></div>
+        <div class="dial" data-dial="credibility" style="background:conic-gradient(#FFA600 0 55%,#212121 55% 100%)"><div class="in">C</div></div>
         <span class="dl">Credibility Grade</span>
       </div>
-      <div class="fx col gap16">
+      <div class="fx col gap16" data-bars>
         <div class="cbar"><div class="top"><span class="cn">Experience</span><span class="cg">B</span></div><div class="track"><div class="fill g-good" style="width:78%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Expertise</span><span class="cg">B+</span></div><div class="track"><div class="fill g-good" style="width:85%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Authoritativeness</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
@@ -296,9 +310,9 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="movewhy">How trustworthy and authoritative your brand is to buyers and AI. Any website should focus on credibility as a key component.</div>
       <div class="rhero">
         <div class="rhtext">
-          <div class="hverdict">Your website makes claims that can’t be substantiated, which hurts your credibility.</div>
-          <div class="hsum">An on-site proof-point audit of your solution page. For each claim we check whether it’s backed by a stat, whether the social proof is relevant, and whether that proof actually relates to the claim.</div>
-          <div class="metaline"><span class="mtag">On-site only</span><span class="mtag">Solution page</span><span class="mtag">EEAT</span></div>
+          <div class="hverdict" data-bind="verdict">Your website makes claims that can’t be substantiated, which hurts your credibility.</div>
+          <div class="hsum" data-bind="summary">An on-site proof-point audit of your solution page. For each claim we check whether it’s backed by a stat, whether the social proof is relevant, and whether that proof actually relates to the claim.</div>
+          <div class="metaline" data-metas><span class="mtag">On-site only</span><span class="mtag">Solution page</span><span class="mtag">EEAT</span></div>
         </div>
         <div class="shot">
           <image-slot id="shot-cred" data-placeholder="Screenshot of your solution page"></image-slot>
@@ -306,7 +320,7 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Proof-point audit</h3><span class="ln"></span></div>
-      <div class="cols2">
+      <div class="cols2" data-findings>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">3 of 6 core claims have no proof</span></div><span class="rgrade t-bad">D</span></div><div class="rv">“Predictable pipeline”, “used by high-growth teams”, and “2–3× faster” carry no stat or example.</div><div class="rx">Fix · Add a sourced stat or named result to each claim.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your credential badges are strong</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">Diamond Partner status and the client logo wall establish a solid baseline of authority.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Your revenue stat has no source</span></div><span class="rgrade t-mid">C</span></div><div class="rv">“$100M+ generated” appears with no source, date, or link, easy to doubt.</div><div class="rx">Fix · Cite the source and timeframe.</div></div>
@@ -316,7 +330,7 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="tscroll">
         <table class="tbl">
           <thead><tr><th>Claim</th><th>Current proof</th><th>Recommendation</th></tr></thead>
-          <tbody>
+          <tbody id="claims-body">
             <tr><td class="claim">“$100M+ in revenue generated”</td><td>Stat, no source</td><td>Add source + date + link</td></tr>
             <tr><td class="claim">“A predictable pipeline”</td><td>None</td><td>Add a named client result</td></tr>
             <tr><td class="claim">“Used by high-growth teams”</td><td>Unnamed logos</td><td>Name the logos / add a quote</td></tr>
@@ -342,10 +356,10 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
   <div class="report">
     <aside class="side card">
       <div class="dialwrap">
-        <div class="dial" style="background:conic-gradient(#FFA600 0 45%,#212121 45% 100%)"><div class="in">C-</div></div>
+        <div class="dial" data-dial="conversion" style="background:conic-gradient(#FFA600 0 45%,#212121 45% 100%)"><div class="in">C-</div></div>
         <span class="dl">Conversion Grade</span>
       </div>
-      <div class="fx col gap16">
+      <div class="fx col gap16" data-bars>
         <div class="cbar"><div class="top"><span class="cn">Offer diversity</span><span class="cg">D</span></div><div class="track"><div class="fill g-bad" style="width:28%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">On-page solution steps</span><span class="cg">D</span></div><div class="track"><div class="fill g-bad" style="width:34%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Path clarity</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:55%"></div></div></div>
@@ -364,13 +378,13 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
           <div><label class="flab" for="gate-email">Work email</label><input class="field" id="gate-email" type="email" placeholder="you@company.com"></div>
           <div><label class="flab" for="gate-url">Landing / solution page URL</label><input class="field" id="gate-url" type="url" placeholder="https://yoursite.com/offer"></div>
         </div>
-        <div style="margin-top:16px"><button class="btnp">Get my FREE report now</button></div>
+        <div style="margin-top:16px"><button class="btnp" id="gate-submit" type="button">Get my FREE report now</button></div>
       </div>
       <div class="rhero">
         <div class="rhtext">
-          <div class="hverdict">You only have one offer.</div>
-          <div class="hsum">For your growth-marketing-team solution page, you only show a single offer: a demo. Buyers who want a different conversion path will likely bounce.</div>
-          <div class="metaline"><span class="mtag">Landing / solution page</span></div>
+          <div class="hverdict" data-bind="verdict">You only have one offer.</div>
+          <div class="hsum" data-bind="summary">For your growth-marketing-team solution page, you only show a single offer: a demo. Buyers who want a different conversion path will likely bounce.</div>
+          <div class="metaline" data-metas><span class="mtag">Landing / solution page</span></div>
         </div>
         <div class="shot">
           <image-slot id="shot-conv" data-placeholder="Screenshot of your landing page"></image-slot>
@@ -378,14 +392,14 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
         </div>
       </div>
       <div class="sectlab"><span class="n">Findings</span><h3>Conversion critique</h3><span class="ln"></span></div>
-      <div class="cols2">
+      <div class="cols2" data-findings>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">1</span><span class="rt">You’re showing only one offer</span></div><span class="rgrade t-bad">D</span></div><div class="rv">The demo call is the sole conversion point, nothing for visitors who aren’t sales-ready.</div><div class="rx">Fix · Add a low-commitment offer (template, calculator, mini-class).</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">2</span><span class="rt">Your page has no alternate conversion points</span></div><span class="rgrade t-bad">D</span></div><div class="rv">No on-page steps or framework, the demo carries all the persuasion weight.</div><div class="rx">Fix · Add a 3-step “how it works” on the page.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">3</span><span class="rt">Demo CTA is unmistakable</span></div><span class="passbadge">✓ PASS</span></div><div class="rv">For a ready-to-buy visitor, the primary action is obvious and repeated.</div></div>
         <div class="card rcard"><div class="rh"><div class="rhl"><span class="rnum">4</span><span class="rt">Users higher in the funnel are left out</span></div><span class="rgrade t-mid">C-</span></div><div class="rv">Visit → demo → exit. No nurture path captures the ~97% who don’t book.</div><div class="rx">Fix · Route them to a lead magnet, then nurture.</div></div>
       </div>
-      <div class="sectlab"><span class="n">Offer ladder</span><h3>You only have one offer</h3><span class="ln"></span></div>
-      <div class="offers">
+      <div class="sectlab"><span class="n">Offer ladder</span><h3 data-bind="offer-headline">You only have one offer</h3><span class="ln"></span></div>
+      <div class="offers" id="offer-grid">
         <div class="offer have"><span class="ck">✓</span>Demo call</div>
         <div class="offer missing"><span class="ck">+</span>Mini-class</div>
         <div class="offer missing"><span class="ck">+</span>Workshop</div>
@@ -421,17 +435,17 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="card rcard">
         <div><div class="rt" style="font-size:18px">Schema Score</div><div class="toolby">Lean Labs</div></div>
         <div class="rv" style="flex:1">Is your structured data set up so search and AI can read your site and its offers?</div>
-        <a class="btnp w100" href="https://schemascore.ai/" target="_blank" rel="noopener">Run Schema Score ↗</a>
+        <a class="btnp w100" data-tool-link="schema" href="https://schemascore.ai/" target="_blank" rel="noopener">Run Schema Score ↗</a>
       </div>
       <div class="card rcard">
         <div><div class="rt" style="font-size:18px">Speed · Core Web Vitals</div><div class="toolby">Google PageSpeed</div></div>
         <div class="rv" style="flex:1">How fast your pages load on mobile and desktop. Slow pages cost conversions.</div>
-        <a class="btnp w100" href="https://pagespeed.web.dev/" target="_blank" rel="noopener">Open PageSpeed ↗</a>
+        <a class="btnp w100" data-tool-link="pagespeed" href="https://pagespeed.web.dev/" target="_blank" rel="noopener">Open PageSpeed ↗</a>
       </div>
       <div class="card rcard">
         <div><div class="rt" style="font-size:18px">Is it agent ready?</div><div class="toolby">Cloudflare</div></div>
         <div class="rv" style="flex:1">Can AI agents and crawlers access, read, and act on your site? A new front door.</div>
-        <a class="btnp w100" href="https://agentready.com/" target="_blank" rel="noopener">Run Agent Ready ↗</a>
+        <a class="btnp w100" data-tool-link="agentready" href="https://agentready.com/" target="_blank" rel="noopener">Run Agent Ready ↗</a>
       </div>
     </div>
     <div class="card teaser">
@@ -464,10 +478,10 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
   <div class="report">
     <aside class="side card">
       <div class="dialwrap">
-        <div class="dial" style="background:conic-gradient(#FFA600 0 62%,#212121 62% 100%)"><div class="in">C+</div></div>
+        <div class="dial" data-dial="overall" style="background:conic-gradient(#FFA600 0 62%,#212121 62% 100%)"><div class="in">C+</div></div>
         <span class="dl">Overall Grade</span>
       </div>
-      <div class="fx col gap16">
+      <div class="fx col gap16" data-bars>
         <div class="cbar"><div class="top"><span class="cn">Copy</span><span class="cg">B-</span></div><div class="track"><div class="fill g-good" style="width:70%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Credibility</span><span class="cg">C</span></div><div class="track"><div class="fill g-mid" style="width:58%"></div></div></div>
         <div class="cbar"><div class="top"><span class="cn">Conversion</span><span class="cg">C-</span></div><div class="track"><div class="fill g-mid" style="width:48%"></div></div></div>
@@ -481,14 +495,14 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
       <div class="rhero">
         <div class="rhtext">
           <div class="hverdict">Talk with Kevin Barber, Head of AI Growth at Lean Labs.</div>
-          <div class="hsum">Your site is clear and credible-looking, but it under-proves its claims and gives visitors only one way to act. Here’s what we’d fix first.</div>
+          <div class="hsum" data-bind="summary">Your site is clear and credible-looking, but it under-proves its claims and gives visitors only one way to act. Here’s what we’d fix first.</div>
         </div>
         <div class="shot" style="width:220px;min-height:220px">
           <image-slot id="kevin-photo" data-placeholder="Photo of Kevin"></image-slot>
         </div>
       </div>
       <div class="sectlab"><span class="n">Priority</span><h3>What we’d fix first</h3><span class="ln"></span></div>
-      <div class="fixes">
+      <div class="fixes" id="fix-list">
         <div class="card fix"><div class="fixn">1</div><div><div class="ft">Back your 3 unproven claims with sourced stats + one named result</div><div class="fd">The quickest belief win. Add a source to the revenue stat and one client result to the solution page.</div></div></div>
         <div class="card fix"><div class="fixn">2</div><div><div class="ft">Add one low-commitment offer beyond the demo</div><div class="fd">A template, calculator, or mini-class to capture visitors who aren’t ready to book yet.</div></div></div>
         <div class="card fix"><div class="fixn">3</div><div><div class="ft">Rewrite the hero to lead with the buyer’s outcome</div><div class="fd">Open with the result, a predictable pipeline, before the credentials.</div></div></div>
@@ -515,53 +529,7 @@ image-slot .ph{font:500 13px/1.4 var(--font-body);color:#757575;text-align:cente
 </div>
 </section>
 
-<script>
-// image-slot: lightweight stand-in for the design-canvas component.
-// Fills its positioned parent; shows the placeholder label until a real image src is set.
-customElements.define('image-slot', class extends HTMLElement {
-  connectedCallback() {
-    const src = this.getAttribute('src');
-    if (src) {
-      this.innerHTML = '<img src="' + src + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">';
-    } else {
-      this.innerHTML = '<span class="ph">' + (this.dataset.placeholder || 'Image') + '</span>';
-    }
-  }
-});
-
-const ORDER = ['entry', 'copy', 'credibility', 'conversion', 'code', 'cost', 'conversation'];
-let move = 'entry';
-
-function render() {
-  const cur = ORDER.indexOf(move);
-  document.querySelectorAll('.step').forEach(btn => {
-    const i = ORDER.indexOf(btn.dataset.step);
-    btn.classList.remove('done', 'active', 'sel', 'next', 'locked');
-    let st;
-    if (i < cur) { btn.classList.add('done'); st = 'Complete'; }
-    else if (i === cur) { btn.classList.add('active', 'sel'); st = 'You are here'; }
-    else if (i === cur + 1) { btn.classList.add('next'); st = 'Up next'; }
-    else { btn.classList.add('locked'); st = 'Locked'; }
-    btn.querySelector('.sst').textContent = st;
-  });
-  document.querySelectorAll('[data-screen]').forEach(s => { s.hidden = s.dataset.screen !== move; });
-}
-
-function go(k) {
-  move = k;
-  history.replaceState(null, '', '#' + k);
-  render();
-  window.scrollTo(0, 0);
-}
-
-document.addEventListener('click', e => {
-  const t = e.target.closest('[data-go]');
-  if (t) go(t.dataset.go);
-});
-
-const h = location.hash.slice(1);
-if (ORDER.includes(h)) move = h;
-render();
-</script>
+<script src="js/demo-data.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

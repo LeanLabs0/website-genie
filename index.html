@@ -205,6 +205,20 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
   .entryform .btnp{width:100%}
   .llslash,.prodname{display:none}
 }
+
+/* --- Cost & ROI --- */
+.roiwrap{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px;align-items:start}
+.roiin,.roiout{padding:28px}
+.roifield{display:flex;align-items:center;gap:8px}
+.roifield span{font:600 18px/1 var(--font-heading);color:#949494}
+.roiin .field{margin-top:6px}
+.roirange{width:100%;margin-top:12px;accent-color:#00D492}
+.roibig{font:600 40px/1.1 var(--font-heading);color:#fff;margin-top:10px}
+.roibig span{font-size:16px;color:#949494;margin-left:4px}
+.roisub{font:400 14px/1.4 var(--font-body);color:#949494;margin-top:6px}
+.roisplit{height:1px;background:#2B2B2B;margin:24px 0}
+.roinote{margin-top:18px;font:500 14px/1.5 var(--font-body);color:#B0B0B0;background:#1C1C1C;border-radius:8px;padding:12px 14px}
+@media (max-width:900px){.roiwrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -518,11 +532,44 @@ body::before{content:'';position:absolute;top:-220px;left:50%;transform:translat
 <!-- Step 5 · Cost & ROI -->
 <section data-screen="cost" hidden>
 <div class="screen">
-  <div class="card placeholder">
-    <span class="movepill">Genius Move #5</span>
-    <div class="movetitle" style="margin-top:18px">Cost &amp; ROI of fixing your site</div>
-    <div class="hsum" style="margin:14px auto 0;max-width:44ch">See exactly what fixing your website is worth, in dollars.</div>
-    <div style="margin-top:28px"><button class="btnp" data-go="conversation">Get Your Real ROI Here →</button></div>
+  <span class="movepill">Genius Move #5</span>
+  <h2 class="movetitle">Cost &amp; ROI</h2>
+  <div class="movewhy">A grade only matters if it costs you money. Put in your own numbers and see what the gap is worth. We do the arithmetic, you own the assumptions.</div>
+
+  <div class="roiwrap">
+    <div class="card roiin">
+      <div class="tup">Your numbers</div>
+      <label class="flab" for="roi-value">Average customer value</label>
+      <div class="roifield"><span>$</span><input class="field" id="roi-value" type="number" min="0" step="100" value="5000" inputmode="numeric"></div>
+      <label class="flab" for="roi-deals" style="margin-top:18px">New customers per month from the site</label>
+      <input class="field" id="roi-deals" type="number" min="0" step="1" value="4" inputmode="numeric">
+      <label class="flab" for="roi-lift" style="margin-top:18px">If fixing these issues lifts conversion by <b id="roi-liftv">20%</b></label>
+      <input id="roi-lift" type="range" min="5" max="50" step="5" value="20" class="roirange">
+      <div class="fnote" style="margin-top:14px">Nothing here is measured from your site. These are your assumptions, multiplied out.</div>
+    </div>
+
+    <div class="card roiout">
+      <div class="tup">What the site is worth today</div>
+      <div class="roibig" id="roi-now">$20,000<span>/mo</span></div>
+      <div class="roisub" id="roi-nowy">$240,000 per year</div>
+
+      <div class="roisplit"></div>
+
+      <div class="tup">What the lift is worth</div>
+      <div class="roibig t-good" id="roi-gain">+$4,000<span>/mo</span></div>
+      <div class="roisub" id="roi-gainy">+$48,000 per year</div>
+
+      <div class="roinote" id="roi-note">That is one extra customer a month.</div>
+    </div>
+  </div>
+
+  <div class="card teaser" style="margin-top:32px">
+    <div>
+      <div class="tup">Up next · Genius Move #6</div>
+      <div class="ttl" style="margin-top:6px">Talk it through</div>
+      <div class="fnote" style="margin-top:6px">You have the grades and the number. Next: which fixes to run first, and in what order.</div>
+    </div>
+    <button class="btnp" data-go="conversation">Continue to Conversation →</button>
   </div>
 </div>
 </section>

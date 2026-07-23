@@ -1053,3 +1053,56 @@ const PARAMS = new URLSearchParams(location.search);
 const h = location.hash.slice(1);
 if (ORDER.includes(h)) move = h;
 render();
+
+// ---------------------------------------------------------------------------
+// Cost & ROI: the visitor's own numbers, multiplied out. No invented benchmarks.
+// ---------------------------------------------------------------------------
+
+function money(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function renderRoi() {
+  const vEl = document.getElementById('roi-value');
+  const dEl = document.getElementById('roi-deals');
+  const lEl = document.getElementById('roi-lift');
+  if (!vEl || !dEl || !lEl) return;
+  const value = Math.max(0, Number(vEl.value) || 0);
+  const deals = Math.max(0, Number(dEl.value) || 0);
+  const lift = Math.max(0, Number(lEl.value) || 0);
+
+  const now = value * deals;
+  const gain = now * (lift / 100);
+
+  const liftv = document.getElementById('roi-liftv');
+  if (liftv) liftv.textContent = lift + '%';
+  const setText = (id, t) => { const n = document.getElementById(id); if (n) n.textContent = t; };
+  const nowEl = document.getElementById('roi-now');
+  if (nowEl) nowEl.innerHTML = '';
+  if (nowEl) { nowEl.append(document.createTextNode(money(now)), el('span', null, '/mo')); }
+  setText('roi-nowy', money(now * 12) + ' per year');
+  const gainEl = document.getElementById('roi-gain');
+  if (gainEl) { gainEl.replaceChildren(document.createTextNode('+' + money(gain)), el('span', null, '/mo')); }
+  setText('roi-gainy', '+' + money(gain * 12) + ' per year');
+
+  // Say it in a unit a human feels, not just a number.
+  let note;
+  if (!value || !deals) {
+    note = 'Put in your numbers above and this fills in.';
+  } else {
+    const extra = gain / value;
+    if (extra >= 1) {
+      const n = Math.round(extra * 10) / 10;
+      note = 'That is ' + (n === 1 ? 'one extra customer' : n + ' extra customers') + ' a month, from the same traffic.';
+    } else {
+      note = 'That is ' + money(gain * 12) + ' a year from the same traffic, without spending more on ads.';
+    }
+  }
+  setText('roi-note', note);
+}
+
+['roi-value', 'roi-deals', 'roi-lift'].forEach(id => {
+  const n = document.getElementById(id);
+  if (n) n.addEventListener('input', renderRoi);
+});
+renderRoi();

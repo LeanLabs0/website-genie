@@ -917,13 +917,50 @@ function mergeConversionScan(resp) {
   return base;
 }
 
-function setGateScanning(on, message) {
+// Scan 2 progress renders as a card under the gate, the same shape as the
+// entry screen's scan card. The button only locks; it is not a status line.
+function gateProgressCard() {
+  const gate = document.querySelector('[data-screen="conversion"] .gate');
+  if (!gate) return null;
+  let card = document.getElementById('gate-progress');
+  if (!card) {
+    card = el('div', 'card no-print');
+    card.id = 'gate-progress';
+    card.style.cssText = 'padding:24px;margin-top:20px';
+    const up = el('div', 'tup', 'Scanning your page');
+    const ttl = el('div', 'ttl', 'Starting your scan…');
+    ttl.id = 'gate-phase';
+    ttl.style.marginTop = '8px';
+    const track = el('div', 'track');
+    track.style.marginTop = '18px';
+    const fill = el('div', 'fill g-good');
+    fill.id = 'gate-bar';
+    fill.style.width = '0%';
+    track.appendChild(fill);
+    const note = el('div', 'fnote', 'This takes about 30 seconds. Keep this tab open.');
+    note.style.marginTop = '12px';
+    card.append(up, ttl, track, note);
+    gate.appendChild(card);
+  }
+  return card;
+}
+
+function setGateScanning(on, message, pct) {
   const btn = document.getElementById('gate-submit');
   if (btn) {
     btn.disabled = on;
-    if (on) { btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = message || 'Grading your page…'; }
+    btn.style.opacity = on ? '.6' : '';
+    if (on) { btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = 'Scanning…'; }
     else if (btn.dataset.label) { btn.textContent = btn.dataset.label; }
   }
+  const card = gateProgressCard();
+  if (!card) return;
+  card.hidden = !on;
+  if (!on) return;
+  const phase = document.getElementById('gate-phase');
+  if (phase && message) phase.textContent = message;
+  const bar = document.getElementById('gate-bar');
+  if (bar && pct != null) bar.style.width = clampPct(pct) + '%';
 }
 
 const gateBtn = document.getElementById('gate-submit');
@@ -945,9 +982,9 @@ if (gateBtn) {
     try { sessionStorage.setItem('genie:lead', email); } catch (e) {}
 
     // Scan 2: the conversion critique runs on the URL entered HERE.
-    setGateScanning(true);
+    setGateScanning(true, 'Starting your scan…', 2);
     const impl = PARAMS.get('stub') ? stubScan : runScan;
-    impl(url, email, evt => setGateScanning(true, evt.message), 'conversion')
+    impl(url, email, evt => setGateScanning(true, evt.message, evt.pct), 'conversion')
       .then(resp => {
         const merged = mergeConversionScan(resp);
         try { sessionStorage.setItem('genie:report', JSON.stringify(merged)); } catch (e) {}
@@ -957,8 +994,19 @@ if (gateBtn) {
       })
       .catch(err => {
         setGateScanning(false);
-        const btn = document.getElementById('gate-submit');
-        if (btn) btn.textContent = (err && err.genie ? err.message : 'Scan failed.') + ' Try again';
+        const card = gateProgressCard();
+        if (card) {
+          card.hidden = false;
+          card.style.boxShadow = 'inset 0 0 0 1px #E5484D';
+          const up = card.querySelector('.tup');
+          if (up) { up.textContent = 'Scan failed'; up.style.color = '#E5484D'; }
+          const phase = document.getElementById('gate-phase');
+          if (phase) phase.textContent = err && err.genie ? err.message : 'Something went wrong. Please try again.';
+          const track = card.querySelector('.track');
+          if (track) track.hidden = true;
+          const note = card.querySelector('.fnote');
+          if (note) note.textContent = 'Check the URL and submit again.';
+        }
       });
   });
 }

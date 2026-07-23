@@ -26,10 +26,10 @@ Planned: `?r=<report_id>` shareable links. The hook is dormant in `js/app.js` un
 
 The report is produced by **two** scans, matching the original grader design where the landing-page critique was a separate step:
 
-1. **Scan 1 (entry URL)** grades **Copy + Credibility** only. The request carries `scope: "main"`. The engine skips the Conversion agent, so that section ships with `skipped: true` and the rollup covers 2 pages (~40s).
-2. **Scan 2 (Conversion screen)** runs only when the visitor enters their offer/landing URL into the email-gate card on step 3. The request carries `scope: "conversion"` and grades only that URL's Conversion critique (~30s). The frontend merges the result into the stored report and recomputes the rollup to 3 pages.
+1. **Scan 1 (entry URL)** grades **Copy + Credibility** only. The request carries `scope: "main"`. The engine skips the Conversion agent, so that section ships with `skipped: true` and the rollup covers 2 graded **moves** (~40s).
+2. **Scan 2 (Conversion screen)** runs only when the visitor enters their offer/landing URL into the email-gate card on step 3. The request carries `scope: "conversion"` and grades only that URL's Conversion critique (~30s). The frontend merges the result into the stored report (including the page set, so the page count grows) and recomputes the rollup to 3 graded moves.
 
-Until scan 2 runs, the Conversion screen shows the gate card with a short teaser (not a report), rail step 3 reads "Enter your page URL", and the Conversation rollup covers the 2 graded pages. `scope: "full"` (all three at once) exists for internal/testing use.
+Until scan 2 runs, the Conversion screen shows the gate card with a short teaser (not a report), rail step 3 reads "Enter your page URL", the Conversation rollup covers the 2 graded moves, and the Conversion row in that rollup reads "Not graded yet" with no score. `scope: "full"` (all three at once) exists for internal/testing use.
 
 A `skipped: true` section is distinct from a failed one: it carries no `error` and is not counted as a failure in the rollup.
 
@@ -49,7 +49,7 @@ Color rule (computed client-side, not sent): **colour follows the letter, never 
 
 There used to be a separate pct rule (`>= 70` good, `40-69` mid, `< 40` bad) running alongside the backend's letter bands, which paints an F orange at 58 and a C- green at 72. The two scales are now one.
 
-Every grade is shown with the number behind it (`85/100` beside the letter on bars and dials, in the tooltip on finding chips). A letter on its own is an assertion the reader cannot check.
+Every grade is shown with the number behind it: `85/100` beside the letter on bars, dials and finding chips. A letter on its own is an assertion the reader cannot check.
 
 Partial failure: a failed section keeps its shape with `grade: null`, empty `subscores`/`findings` and an `error` message; the frontend keeps that step locked ("Not available") and renders the rest. All three failed becomes an SSE error.
 
@@ -64,12 +64,12 @@ One page, 7 screens toggled by the step rail. Each screen is deep-linkable by ha
 | 2 | Credibility | `#credibility` | Grade dial, EEAT sub-scores + proof coverage bar, proof-point audit cards, claims table |
 | 3 | Conversion | `#conversion` | Grade dial, email-gate card (yellow outline), offer-ladder grid, finding cards |
 | 4 | Code | `#code` | 3 external tool cards: Schema Score, Google PageSpeed (link carries the scanned URL), Agent Ready |
-| 5 | Cost & ROI | `#cost` | Placeholder screen, content not designed yet |
+| 5 | Cost & ROI | `#cost` | The visitor's own numbers multiplied out, their overall grade for reference, no measured claims |
 | 6 | Conversation | `#conversation` | Overall grade rollup, "what we'd fix first" priority list, booking card + scheduler slot |
 
 ## Interaction spec
 
-- **Step rail** (sticky, under the top bar): each step shows one of 4 states: `done` (green check number), `active` (white number, highlighted), `next` (outlined number, "Up next"), `locked` (45% opacity). In demo/ready modes all steps navigate; once a real report is rendered, remaining steps read "View" (not "Locked", which is only the prototype's relative-position wording). While scanning, only the next upcoming step shows the live phase text ("Copy graded: B-"); the others read "Locked". The Conversion step reads "Enter your page URL" until scan 2 runs. Failed report sections stay locked with "Not available".
+- **Step rail** (sticky, under the top bar): each step shows one of 4 states: `done` (green check number), `active` (white number, highlighted), `next` (outlined number, "Up next"), `locked` (45% opacity). **"Complete" is earned, not collected**: it needs a graded section in the report, so Code ("Tools to run") and Cost & ROI ("Your numbers") never get a green check no matter how often you walk past them, and a demo visitor who never scanned does not collect seven ticks. In demo/ready modes all steps navigate; once a real report is rendered, remaining steps read "View" (not "Locked", which is only the prototype's relative-position wording). While scanning, only the next upcoming step shows the live phase text ("Copy graded: B-"); the others read "Locked". The Conversion step reads "Enter your page URL" until scan 2 runs. Failed report sections stay locked with "Not available". The rail is hidden on step 0 for a fresh visitor, as designed, but stays visible there once a report exists: hiding it made the entry screen a dead end with only the browser back button out.
 - **Entry form**: URL is normalized (scheme added if missing) and validated client-side before the scan starts.
 - **Scan errors**: mapped to plain messages (429 high demand, 502 unreachable URL, 422 bad URL, timeout, network) in the `#scan-error` card with a retry button.
 - **Email gate** (Conversion screen): captures the lead AND triggers scan 2 (the Conversion critique of the URL entered here). Both fields validate inline with a visible message before anything is sent. The URL field is deliberately **not** prefilled with the entry URL: this critique wants the page where visitors actually convert, which is usually a different page, and prefilling made the gate a pure email wall. Submits to the engine's lead endpoint (non-blocking), then runs a `scope: "conversion"` scan with progress in a card under the gate, merges the result, and re-renders the Conversion screen and the rollup. On success the form is replaced by a confirmation naming the URL that was graded.
@@ -116,10 +116,15 @@ These came out of prospect audits of the live site. Each one shipped as a fix:
 
 1. **Sample data renders only behind `?demo=1` / `?mock=1`.** On any other visit, report screens show a "Run a scan to see this" panel. A deep link to `#copy` or `#cost` used to hand a fresh visitor a complete, unlocked report with letter grades and dollar figures about a business nobody scanned.
 2. **Print carries the visitor's report and nothing else.** No entry hero, no decorative art, no forms, and nothing at all when no scan has run. It used to lead with the sample "B- / 1,240 words" card above the user's real grade.
-3. **One grading scale.** Colour comes from the letter, `js/demo-data.js` letters are computed from their pct on the engine's bands, and the static sample markup matches. The demo file is publicly readable, so a second, kinder curve in it is a competitor's screenshot.
-4. **Every grade shows its number.**
-5. **Nothing invented on screen.** No fake grades in decoration, no prefilled dollar figures on Cost & ROI, no hardcoded findings in "why this move matters" copy, no pins without coordinates.
-6. **Nothing fails silently.** The gate validates both fields inline; an empty entry box does not claim a scan failed.
+3. **The rollup summary is rewritten client-side.** The engine writes it, and it writes "page" where it means "move" ("across 2 graded pages. Credibility is the weakest page at C+") one inch from a sidebar reading "Covers 2 graded moves across 1 page". Any summary that makes a countable claim is rebuilt from the report itself in `rollupSummary()`, and the sidebar line is counted from the same bars, so the two cannot disagree. A summary with no countable claim (the hand-written demo one) passes through untouched.
+4. **An ungraded thing never shows a number.** `pctOrNull()` returns null, not 0, so a skipped or missing section renders "Not graded yet" with no score, no `0/100` and no coloured bar. Same guard on the dial and the finding chips.
+5. **The priority list has exactly one "Start here".** The engine writes the rank rationale into each fix, and the conversion merge appends another rank-1 line. `orderFixes()` re-derives the rendered list: worst move first, deduplicated, renumbered 1-2-3, rationale rewritten for the rank each card actually gets.
+6. **Every printed page names the site, the date and the grade.** The print-only running head; the sample prints "Not a real scan".
+7. **One grading scale.** Colour comes from the letter, `js/demo-data.js` letters are computed from their pct on the engine's bands, and the static sample markup matches. The demo file is publicly readable, so a second, kinder curve in it is a competitor's screenshot.
+8. **Every grade shows its number.**
+9. **Nothing invented on screen.** No fake grades in decoration, no prefilled dollar figures on Cost & ROI, no hardcoded findings in "why this move matters" copy, no pins without coordinates.
+10. **Nothing fails silently, and not just visually.** The gate validates both fields inline; an empty entry box does not claim a scan failed. The offending field carries `aria-invalid`, the message sits in a `role="alert"` node, and that node is revealed before its text changes so the announcement fires.
+11. **No text under 11px.** Labels, statuses, table headers and the scores beside letters all carry meaning, so none of them render at 9 or 10px on a phone.
 
 Resolved since the prototype handoff:
 

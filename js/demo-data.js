@@ -41,7 +41,7 @@ window.GENIE_DEMO = {
     "reading_level": "Grade 9"
   },
   "copy": {
-    "grade": "C-",
+    "grade": "C+",
     "pct": 70,
     "verdict": "Your copy is clear and easy to read. However, it’s not designed for your buyers, or LLMs.",
     "summary": "We analyzed your home page & solution page. Your category and credentials stood out, but weren’t written for your buyers or AI search.",
@@ -54,19 +54,19 @@ window.GENIE_DEMO = {
       {
         "key": "clarity",
         "label": "Clarity",
-        "grade": "B",
+        "grade": "A-",
         "pct": 85
       },
       {
         "key": "message_market_fit",
         "label": "Message–market fit",
-        "grade": "F",
+        "grade": "D",
         "pct": 58
       },
       {
         "key": "value_proposition",
         "label": "Value proposition",
-        "grade": "D",
+        "grade": "C-",
         "pct": 63
       },
       {
@@ -78,7 +78,7 @@ window.GENIE_DEMO = {
       {
         "key": "voice_emotion",
         "label": "Voice & emotion",
-        "grade": "C+",
+        "grade": "B",
         "pct": 78
       }
     ],
@@ -88,7 +88,7 @@ window.GENIE_DEMO = {
         "title": "You lack an intermediate CTA",
         "detail": "The hero offers three competing links and no single obvious next step.",
         "fix": "Lead with one primary action above the fold.",
-        "grade": "F",
+        "grade": "D-",
         "pct": 55,
         "pass": false,
         "pin": null
@@ -98,7 +98,7 @@ window.GENIE_DEMO = {
         "title": "You overcome objections well",
         "detail": "Your FAQ and risk-reversal copy pre-empt the top buyer concerns before they’re asked.",
         "fix": null,
-        "grade": "A-",
+        "grade": "A",
         "pct": 91,
         "pass": true,
         "pin": null
@@ -108,7 +108,7 @@ window.GENIE_DEMO = {
         "title": "Your value proposition is “buried”",
         "detail": "The outcome appears below the fold, underneath your credentials and awards.",
         "fix": "Open with the result, a predictable pipeline.",
-        "grade": "D",
+        "grade": "C-",
         "pct": 63,
         "pass": false,
         "pin": null
@@ -132,7 +132,7 @@ window.GENIE_DEMO = {
     "error": null
   },
   "credibility": {
-    "grade": "F",
+    "grade": "D-",
     "pct": 55,
     "verdict": "Your website makes claims that can’t be substantiated, which hurts your credibility.",
     "summary": "An on-site proof-point audit of your solution page. For each claim we check whether it’s backed by a stat, whether the social proof is relevant, and whether that proof actually relates to the claim.",
@@ -145,19 +145,19 @@ window.GENIE_DEMO = {
       {
         "key": "experience",
         "label": "Experience",
-        "grade": "C+",
+        "grade": "B",
         "pct": 78
       },
       {
         "key": "expertise",
         "label": "Expertise",
-        "grade": "B",
+        "grade": "A-",
         "pct": 85
       },
       {
         "key": "authoritativeness",
         "label": "Authoritativeness",
-        "grade": "F",
+        "grade": "D",
         "pct": 58
       },
       {
@@ -189,7 +189,7 @@ window.GENIE_DEMO = {
         "title": "Your credential badges are strong",
         "detail": "Diamond Partner status and the client logo wall establish a solid baseline of authority.",
         "fix": null,
-        "grade": "B+",
+        "grade": "A",
         "pct": 88,
         "pass": true,
         "pin": null
@@ -199,7 +199,7 @@ window.GENIE_DEMO = {
         "title": "Your revenue stat has no source",
         "detail": "“$100M+ generated” appears with no source, date, or link, easy to doubt.",
         "fix": "Cite the source and timeframe.",
-        "grade": "F",
+        "grade": "D-",
         "pct": 55,
         "pass": false,
         "pin": null
@@ -263,13 +263,13 @@ window.GENIE_DEMO = {
       {
         "key": "path_clarity",
         "label": "Path clarity",
-        "grade": "F",
+        "grade": "D-",
         "pct": 55
       },
       {
         "key": "cta_strength",
         "label": "CTA strength",
-        "grade": "D",
+        "grade": "C",
         "pct": 65
       }
     ],
@@ -355,7 +355,7 @@ window.GENIE_DEMO = {
         "title": "Demo CTA is unmistakable",
         "detail": "For a ready-to-buy visitor, the primary action is obvious and repeated.",
         "fix": null,
-        "grade": "A-",
+        "grade": "A+",
         "pct": 92,
         "pass": true,
         "pin": null
@@ -379,19 +379,19 @@ window.GENIE_DEMO = {
     "error": null
   },
   "rollup": {
-    "grade": "D-",
+    "grade": "C-",
     "pct": 62,
     "pages": [
       {
         "key": "copy",
         "label": "Copy",
-        "grade": "C-",
+        "grade": "C+",
         "pct": 70
       },
       {
         "key": "credibility",
         "label": "Credibility",
-        "grade": "F",
+        "grade": "D",
         "pct": 58
       },
       {

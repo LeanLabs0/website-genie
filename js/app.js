@@ -130,10 +130,15 @@ customElements.define('image-slot', class extends HTMLElement {
 
 const BAND_COLORS = { good: '#00D492', mid: '#FFA600', bad: '#E5484D' };
 
-// Letter bands mirror the backend's grading.py.
+// Letter bands mirror GRADE_BANDS in the engine's
+// src/factor8/website_genie/grading.py. The two lists are one curve printed in
+// two places, so they change together or the page prints a different letter
+// than the engine computed. Rebased to reproduce the original Growth Grader
+// curve: the old bands (A+ at 97, D- at 60) graded a competent page D+/C- when
+// the grader it replaced read it as a B.
 const LETTER_BANDS = [
-  [97, 'A+'], [93, 'A'], [90, 'A-'], [87, 'B+'], [83, 'B'], [80, 'B-'],
-  [77, 'C+'], [73, 'C'], [70, 'C-'], [67, 'D+'], [63, 'D'], [60, 'D-']
+  [92, 'A+'], [87, 'A'], [83, 'A-'], [79, 'B+'], [75, 'B'], [72, 'B-'],
+  [68, 'C+'], [65, 'C'], [62, 'C-'], [59, 'D+'], [56, 'D'], [53, 'D-']
 ];
 
 function letterFromPct(pct) {
@@ -164,10 +169,13 @@ function gradeBand(display, pct) {
   return bandFromLetter(letterFromPct(clampPct(pct)));
 }
 
-// Fallback pct when only a letter is available (band midpoints).
+// Fallback pct when only a letter is available (band midpoints). Derived from
+// LETTER_BANDS above, so letterFromPct(LETTER_PCT[x]) === x for every letter.
+// F has no floor, so it keeps its long-standing representative value (50, still
+// inside the F band) rather than a midpoint.
 const LETTER_PCT = {
-  'A+': 98, 'A': 94, 'A-': 91, 'B+': 88, 'B': 84, 'B-': 81,
-  'C+': 78, 'C': 74, 'C-': 71, 'D+': 68, 'D': 64, 'D-': 61, 'F': 50
+  'A+': 96, 'A': 89, 'A-': 84, 'B+': 80, 'B': 76, 'B-': 73,
+  'C+': 69, 'C': 66, 'C-': 63, 'D+': 60, 'D': 57, 'D-': 54, 'F': 50
 };
 
 // A score we can actually print, or null. Null means "there is no number here",

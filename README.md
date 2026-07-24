@@ -45,9 +45,19 @@ Shape summary:
 - `conversion` extras: `offer_ladder[]`, always all 9 in fixed order (`demo_call`, `mini_class`, `workshop`, `template`, `checklist`, `toolkit`, `calculator`, `webinar`, `accelerator`), each `key`, `label`, `present`, `evidence`.
 - `rollup` (page 6 Conversation): `grade`, `pct`, `pages[]` (`key`, `label`, `grade`, `pct`), `summary`, `priority_fixes[]` (3: `rank`, `title`, `detail`).
 
+Letter bands (the curve, one copy per language, changed together):
+
+| A+ | A | A- | B+ | B | B- | C+ | C | C- | D+ | D | D- | F |
+|----|---|----|----|---|----|----|---|----|----|---|----|---|
+| 92 | 87 | 83 | 79 | 75 | 72 | 68 | 65 | 62 | 59 | 56 | 53 | below 53 |
+
+Each number is the floor of its band. The engine owns them in `GRADE_BANDS` (`src/factor8/website_genie/grading.py`); the frontend mirrors them in `LETTER_BANDS` (`js/app.js`), with `LETTER_PCT` holding each band's midpoint for the case where a letter arrives with no number (F has no floor, so it takes a representative value inside the band). Edit one and you have to edit the other, or the page prints a different letter than the engine computed.
+
+These were rebased to reproduce the original Growth Grader curve. The first set (A+ at 97 down to D- at 60) read a competent page as a D+ or C- where the grader it replaced said B, so the report was harsher than the sales conversation that follows it.
+
 Color rule (computed client-side, not sent): **colour follows the letter, never a second threshold.** A/B good `#00D492`, C/D mid `#FFA600`, F bad `#E5484D`. Readouts that are not letters (proof coverage's "1 / 6") take the letter their `pct` would earn. Bar and dial *widths* are still `pct`.
 
-There used to be a separate pct rule (`>= 70` good, `40-69` mid, `< 40` bad) running alongside the backend's letter bands, which paints an F orange at 58 and a C- green at 72. The two scales are now one.
+There used to be a separate pct rule (`>= 70` good, `40-69` mid, `< 40` bad) running alongside the letter bands, so a failing score could render orange and a middling one green in the same list. The two scales are now one.
 
 Every grade is shown with the number behind it: `85/100` beside the letter on bars, dials and finding chips. A letter on its own is an assertion the reader cannot check.
 
